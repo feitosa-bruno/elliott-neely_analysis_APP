@@ -2,7 +2,7 @@
 const { app, BrowserWindow, Menu } = require('electron')
 
 // Enable debugging on launch for application
-let debugging = false
+let debugging = true
 
 // Menu Template
 const template = [
@@ -32,9 +32,12 @@ function createWindow() {
 		show: false,
 		width: 800,
 		height: 600,
+		title: 'Elliot-Neely Analysis',
 		// frame: false,
 		// titleBarStyle: 'hidden',
-		title: 'Elliot-Neely Analysis'
+		webPreferences: {
+			nodeIntegration: true
+		}
 	})
 
 	// Define the menu
