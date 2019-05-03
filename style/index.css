@@ -1,0 +1,180 @@
+*{
+	box-sizing: border-box;
+}
+
+.column {
+    border: 1px solid black;
+	float: left;
+	height: 100%;
+}
+.sub_column {
+    float: left;
+	height: 100%;
+}
+.left {
+	width: 15%;
+}
+.center-left {
+	width: 20%;
+}
+.center-right {
+	width: 20%;
+}
+.right {
+    width: 45%;
+}
+.sub_third {
+	width: 33.33%;
+}
+.sub_half {
+	width: 50%;
+}
+.sub1 {
+	border-right: 1px solid black;
+	width: 35%;
+}
+.sub2 {
+	width: 60%;
+}
+.row {
+	/* height: 100%; */
+}
+
+/* Clear floats after the columns */
+.row:after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+.app_header {
+	height: 120px;
+	border: 1px solid black;
+}
+
+.input_selection{
+	padding-left: 5px;
+	padding-right: 5px;
+	padding-top: 2px;
+	text-align: left;
+    text-decoration: none;
+    font-family: Arial, Helvetica, sans-serif; 
+    font-size: 18px;
+	line-height: 1.5;
+}
+
+.input_select_box_label{
+	align-content: center;
+	vertical-align: middle;
+	height: 50%;
+}
+
+.input_select_box{
+	font-size: 12px;
+	height: 50%;
+	padding-top: 5px;
+	width: 100%;
+}
+
+.control {
+	text-align: left;
+    text-decoration: none;
+    font-family: Arial, Helvetica, sans-serif; 
+    font-size: 16px;
+	line-height: 1.5;
+}
+
+.control_options_label{
+	padding-left: 5px;
+	font-weight: bold;
+	height: 20%;
+}
+
+.control_options1{
+	height: 30%;
+}
+
+.control_options2{
+	padding-left: 5px;
+	height: 25%;
+}
+
+.config {
+	text-align: left;
+    text-decoration: none;
+    font-family: Arial, Helvetica, sans-serif; 
+    font-size: 16px;
+	line-height: 1.5;
+}
+
+.config_options_label{
+	padding-left: 5px;
+	font-weight: bold;
+	height: 20%;
+}
+
+.config_options{
+	padding-left: 5px;
+	height: 80%;
+}
+
+.sub_option{
+	height: 25%;
+}
+
+.button_div {
+	align-content: center;
+	height: 50%;
+	padding: 5px;
+}
+
+.control_button_div {
+	align-content: center;
+	height: 100%;
+	padding: 5px;
+}
+
+.full_button {
+	width: 100%;
+	height: 100%;
+    border: none;
+    text-align: center;
+    display: inline-block;
+    font-size: 0.8;
+}
+
+.inactive_btn{
+	text-decoration: line-through;
+}
+
+.inactive_option{
+	/* Doesn't work */
+	text-decoration: line-through;	
+}
+
+.plot_button {
+    color: black;
+	background-color: #AAAAAA;
+}
+
+.gen_button {
+    color: white;
+	background-color: #333333;
+}
+
+.plot_box {
+	width: 100%;
+	margin-top: 10px;
+	overflow: auto;
+}
+
+.subplot {
+	width: 100%;
+	height: 98%;
+	box-sizing: content-box;
+	border-width: 2px;
+	border-top-style: solid;
+	border-top-color: #000000;
+	border-bottom-style: solid;
+	border-bottom-color: #000000;
+}

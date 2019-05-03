@@ -1,0 +1,120 @@
+<!DOCTYPE HTML>
+<html lang="pt-br" xml:lang="pt-br" xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+	<meta charset="UTF-8">
+	<script src="../scripts/plotly.1-41-3.min.js"></script>
+	<script src="../scripts/plotly.1-41-3.min.js"></script>
+	<script src="../scripts/plotly.1-41-3.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="../style/index.css">
+</head>
+
+<body>
+	<div id="header" class="row app_header">
+		<div class="column left">
+			<div class="button_div">
+				<button class="full_button plot_button" id="plot_btn" type="button">
+					Does Nothing
+				</button>
+			</div>
+			<div class="button_div">
+				<a id="gen_link">
+					<button class="full_button gen_button" id="gen_output" type="button">
+						Output What?
+					</button>
+				</a>
+			</div>
+		</div>
+		<div class="column center-left">
+			<div class="input_selection input_select_box_label">
+				<strong>OHLC Data</strong><br>
+				Select CSV File:
+			</div>
+			<input class="input_selection input_select_box" type="file" id="input" name="files[]" accept=".csv" single />
+		</div>
+		<div class="column center-right">
+			<div class="control control_options_label">
+				Controls
+			</div>
+			<div class="control control_options1 row">
+				<div class="control_button_div sub_column sub_third">
+					<button class="full_button plot_button" id="undo_zoom" type="button">
+						&#x21B6 Zoom
+					</button>
+				</div>
+				<div class="control_button_div sub_column sub_third">
+					<button class="full_button plot_button" id="redo_zoom" type="button">
+						&#x21B7 Zoom
+					</button>
+				</div>
+				<div class="control_button_div sub_column sub_third">
+					<button class="full_button plot_button" id="vert_fit" type="button">
+						&#x2195 Fit
+					</button>
+				</div>
+			</div>
+			<div class="control control_options2">
+				<!-- Add Next Control Here -->
+			</div>
+		</div>
+		<div class="column right">
+			<div class="config config_options_label">
+				Options
+			</div>
+			<div class="row">
+				<div class="config_options sub_column sub1 config">
+					<div class="sub_option">
+						Y-Axis Type:
+						<select id="y-axis_type">
+							<option value="linear">Linear</option>
+							<option value="log" selected="selected">Logarithmic</option>
+						</select>
+					</div>
+					<div class="sub_option">
+						Graph Type:
+						<select id="graph_type">
+							<option value="none">Typical Only</option>
+							<option value="candlestick">Candlestick</option>
+							<option value="ohlc" selected="selected">OHLC</option>
+						</select>
+					</div>
+					<div class="sub_option">
+						Use Date Axis: <input type="checkbox" id="date_check" value="true" checked>
+					</div>
+				</div>
+				<div class="config_options sub_column sub0 config">
+					<div class="sub_option">
+						Resolution:
+						<select id="resolution">
+							<option value="_M1" id="_M1" selected="selected">M1</option>
+							<option value="_H1" id="_H1">H1</option>
+							<option value="_D1" id="_D1">D1</option>
+							<option value="_W1" id="_W1">W1</option>
+						</select>
+					</div>
+					<div class="sub_option">
+						Typical Average:
+						<select id="typical_type">
+							<option id="HLC"		value="HLC" selected="selected">HLC</option>
+							<option id="HL"			value="HL">HL</option>
+							<option id="combined"	value="combined">HL + HLC</option>
+						</select>
+					</div>
+					<div class="sub_option">
+						Show Trimmed Data: <input type="checkbox" id="trim_check" value="true">
+					</div>
+					<div class="sub_option">
+						<!-- Add Next Option Here -->
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="plot_box" id="plot_area">
+		<div class="subplot" id="plot_0">
+		</div>
+	</div>
+	<script src="../scripts/index.js"></script>
+</body>
+
+</html>

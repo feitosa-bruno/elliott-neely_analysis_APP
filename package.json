@@ -1,0 +1,27 @@
+{
+	"name": "elliot-neely_analysis_app",
+	"version": "0.3.0",
+	"description": "",
+	"main": "main.js",
+	"dependencies": {
+		"jszip": "^3.2.1",
+		"npm": "^6.9.0",
+		"papaparse": "^4.6.3"
+	},
+	"devDependencies": {
+		"electron": "^5.0.0"
+	},
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/feitosa-bruno/elliott-neely_analysis_APP.git"
+	},
+	"author": "feitosa.bruno",
+	"license": "ISC",
+	"bugs": {
+		"url": "https://github.com/feitosa-bruno/elliott-neely_analysis_APP/issues"
+	},
+	"homepage": "https://github.com/feitosa-bruno/elliott-neely_analysis_APP#readme"
+}

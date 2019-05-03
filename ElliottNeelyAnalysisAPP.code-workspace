@@ -1,0 +1,49 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"LineCount.excludes": [
+			"**/.vscode/**",
+			"**/.scripts/**",
+			"**/node_modules/**",
+			"**/.out/**",
+			"**/package-lock.json",
+			"**/package.json",
+			"**/*.code-workspace",
+			"**/plotly.*.js"
+		],
+		"LineCount.output": {
+			"txt": false,
+			"json": false,
+			"csv": false,
+			"md": true,
+			"outdir": ".out"
+		},
+		"cSpell.words": [
+			"DIVs",
+			"INPUT'd",
+			"OHLCT",
+			"OHLCTCSV",
+			"Plotly",
+			"Timeframe",
+			"Tstep",
+			"autorange",
+			"dragmode",
+			"melanke",
+			"monowave",
+			"papaparse",
+			"rangeslider",
+			"relayout",
+			"showlegend",
+			"showticklabels",
+			"tickwidth",
+			"timeframes",
+			"watchjs",
+			"xaxis",
+			"yaxis"
+		]
+	}
+}
