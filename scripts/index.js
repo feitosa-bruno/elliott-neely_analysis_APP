@@ -63,18 +63,17 @@ const TypicalTypes			= require(`${appDir}/scripts/global_constants`).TypicalType
 const Resolutions			= require(`${appDir}/scripts/global_constants`).ResolutionSequence;
 const CriticalHeaderList	= require(`${appDir}/scripts/global_constants`).CriticalHeaderList;
 const HeaderList			= require(`${appDir}/scripts/global_constants`).HeaderList;
-const Stopwatch				= require(`${appDir}/scripts/auxiliary/stopwatch`);
-const Versions				= require(`${appDir}/scripts/auxiliary/versions`);
-const OHLCTData				= require(`${appDir}/scripts/auxiliary/OHLCTData`);
-// const Monowave				= require(`${appDir}/scripts/auxiliary/Monowave`);
-const MonowaveVector		= require(`${appDir}/scripts/auxiliary/MonowaveVector`);
-const OHLCStructure			= require(`${appDir}/scripts/auxiliary/OHLCStructure`);
+const OHLCTData				= require(`${appDir}/scripts/classes/OHLCTData`);
+// const Monowave				= require(`${appDir}/scripts/classes/Monowave`);
+const MonowaveVector		= require(`${appDir}/scripts/classes/MonowaveVector`);
+const OHLCStructure			= require(`${appDir}/scripts/classes/OHLCStructure`);
 const calcTypical			= require(`${appDir}/scripts/auxiliary/calc_typical`);
 const renameProperty		= require(`${appDir}/scripts/auxiliary/rename_property`);
 const correctKey			= require(`${appDir}/scripts/auxiliary/correct_key`);
 const detectTimeframe		= require(`${appDir}/scripts/auxiliary/detect_timeframe`);
 const reduceOHLC			= require(`${appDir}/scripts/auxiliary/reduce_OHLC`);
-// const OHLCT2MonowaveVec		= require(`${appDir}/scripts/auxiliary/OHLCT_to_MonowaveVector`);
+const Stopwatch				= require(`${appDir}/scripts/auxiliary/stopwatch`);
+const Versions				= require(`${appDir}/scripts/auxiliary/versions`);
 
 // User Controls List
 const controls = [
@@ -434,18 +433,16 @@ class GlobalController {
 
 		// // Start Output Generation
 		// this.generateOutput();
-
-		// Module Behavior Difference: Graph is Plotted as soon as data is parsed
 	}
 
 	generateOutput () {
-		// TODO: Redo this whole section. OHLC module might have something already done for it
-		// Nevertheless, this section usage might be really different.
+		// TODO: Redo this whole section after analysis is complete.
+
 		outputGenerationSW.start();
 
 		console.log("Output Generation Linked to Generate Output(s) Button");
 
-		var name = 'ElliotModule_output.zip';
+		var name = 'output.zip';
 		var zip = new JSZip();
 
 		var parsedData = this._DataController.getParsedData();
@@ -562,7 +559,7 @@ class DataController {
 
 				if(treatedData !== false) {
 					// Generate Resolutions of Data
-					self.populateResolutions(treatedData);
+					self.populateResolutions(treatedData[0], treatedData[1]);
 
 					// Send File Name to Parsed File List
 					self.updateFilename(inputFile.name);
@@ -575,12 +572,12 @@ class DataController {
         });
 	}
 
-	processParsedOHLCData (parsedInput, fileName) {
-		var headerIsOK = true;		// Valid File Header check
-		var parsedHeader = Object.keys(parsedInput[0]);
+	processParsedOHLCData (parsedInput) {
+		var headerIsOK		= true;		// Valid File Header check
+		var parsedHeader	= Object.keys(parsedInput[0]);
+		var timeframe		= null;
 
 		var output = {
-			Timeframe: "",
 			Date: [],
 			Open: [],
 			High: [],
@@ -654,10 +651,10 @@ class DataController {
 			}
 
 			// Detect Parsed Data Timeframe
-			output.Timeframe = detectTimeframe(output['Date'][0], output['Date'][1]);
+			timeframe = detectTimeframe(output['Date'][0], output['Date'][1]);
 
-			// Return Processed Data
-			return output;
+			// Return Processed Data & Identified Timeframe
+			return [new OHLCTData(output), timeframe];
 		} else {
 			// Throw Error on Parsing and Return an error
 			console.warn(`Header of file "${fileName}" is incorrect.`);
@@ -666,33 +663,37 @@ class DataController {
 		}
 	}
 
-	populateResolutions (input) {
-		// console.log(input);
+	populateResolutions (input, timeframe) {
+		// console.log(input, timeframe);
 
-		var key = input.Timeframe;
-
-		// console.log(this.data['_M1']['HLC']);
-		
-		// Store Parsed Data
-		TypicalTypes.map(typicalType => {
-			this.data[key][typicalType]["full"] = new OHLCTData(input);
-		});
-
-		// console.log(this.data);
-
-		// Reduce Parsed Data into Lower Timeframes Calculate Typical Values
-		var reduced = reduceOHLC(input);
-		TypicalTypes.map(typicalType => {
-			for (var reducedKey in reduced) {
-				this.data[reducedKey][typicalType]["full"] = new OHLCTData(reduced[reducedKey]);
-			}
-		});
+		// Populate first set parsed from file
+		this.data.initialize(input, timeframe);
+			
+		// Reduce Parsed Data into Lower Timeframes
+		this.data.reduceOHLC(timeframe);
 
 		// Calculate Typical Values
+		// TODO: Move to OHLCStructure class
 		for (var resolution in this.data) {
 			TypicalTypes.map(typicalType => {
 				calcTypical(this.data[resolution][typicalType]["full"], typicalType);
 			});
+		}
+
+		// Remove Data Trailing the Lowest Typical value on each chart
+		// TODO: Move to OHLCStructure class
+		for (var timeframe in this.data) {
+			for (var typicalType in this.data[timeframe]) {
+				var cutVector = this.data[timeframe][typicalType]["full"].Typical;
+				// console.log(cutVector);
+				var cutPosition = cutVector.indexOf(Math.min(...cutVector));
+				// console.log(cutPosition);
+				for (var key in this.data[timeframe][typicalType]["full"]) {
+					for (var i = cutPosition; i > 0; i--) {
+						this.data[timeframe][typicalType]["full"][key].shift();
+					}
+				}
+			}
 		}
 
 		// Convert OHLCT Data to Monowave Vectors, Apply Rule of Neutrality, and Trim
@@ -701,9 +702,8 @@ class DataController {
 		// 											(include Rule of Neutrality inside it)
 		for (var resolution in this.data) {
 			TypicalTypes.map(typicalType => {
-				// var mwVector = OHLCT2MonowaveVec(this.data[resolution][typicalType]["full"]);
 				var mwVector = new MonowaveVector(this.data[resolution][typicalType]["full"]);
-				// Implement Rule of Neutrality on this step
+				// TODO: Implement Rule of Neutrality on this step
 				this.data[resolution][typicalType]["mwVector"] = mwVector;
 				this.data[resolution][typicalType]["trim"] = new OHLCTData(mwVector);
 			});

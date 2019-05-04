@@ -1,5 +1,5 @@
 const appDir				= require('electron').remote.app.getAppPath();
-const OHLCTData				= require(`${appDir}/scripts/auxiliary/OHLCTData`);
+const OHLCTData				= require(`${appDir}/scripts/classes/OHLCTData`);
 const resolutionSequence	= require(`${appDir}/scripts/global_constants`).ResolutionSequence;
 const resolutionDuration	= require(`${appDir}/scripts/global_constants`).ResolutionDuration;
 

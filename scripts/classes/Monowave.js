@@ -1,15 +1,17 @@
 class Monowave {
 	constructor (reference) {
-		this.timeEnd	= undefined;
-		this.valueEnd	= undefined;
-		this.closed		= false;
-		this.advance	= 0;			// Positive: Increasing; Negative: Decreasing	
-		this.OHLCTData	= {};
+		this.advance			= 0;			// Positive: Increasing; Negative: Decreasing
+		this.relativeAdvance	= 0;
+		this.OHLCTData			= {};
+		this.closed				= false;
+		this.timeEnd			= undefined;
+		this.valueEnd			= undefined;
 
 		if (reference instanceof OHLCTData) {
 			// Monowave Initialized from OHLCT object (first Monowave of Data)
-			this.timeStart		= new Date(reference['Date'][0]);
-			this.valueStart		= reference['Typical'][0];
+			this.timeStart			= new Date(reference['Date'][0]);
+			this.valueStart			= reference['Typical'][0];
+			this.relativeAdvance	= null;		// By standard, first advance is 100%
 			for (var key in reference) {
 				if (reference[key][0] instanceof Date) {
 					this.OHLCTData[key] = [new Date(reference[key][0])];
@@ -19,8 +21,9 @@ class Monowave {
 			}
 		} else if (reference instanceof Monowave) {
 			// Monowave Initialized from another Monowave (sequential Monowave)
-			this.timeStart		= new Date(reference.timeEnd);
-			this.valueStart		= reference.valueEnd;
+			this.timeStart			= new Date(reference.timeEnd);
+			this.valueStart			= reference.valueEnd;
+			this.relativeAdvance	= reference.advance;	// Save advance of last monowave
 			for (var key in reference.OHLCTData) {
 				var lastMonowaveData = reference.OHLCTData[key].length - 1;
 				if (reference.OHLCTData[key][lastMonowaveData] instanceof Date) {
@@ -54,10 +57,18 @@ class Monowave {
 		} else if (directionChange < 0) {	// Monowave Direction Changed
 			var lastIndex = index - 1;
 			
-			this.closed		= true;
-			this.timeEnd	= new Date(input['Date'][lastIndex]);
-			this.valueEnd	= input['Typical'][lastIndex];
-			this.advance	= this.valueEnd - this.valueStart;
+			this.closed				= true;
+			this.timeEnd			= new Date(input['Date'][lastIndex]);
+			this.valueEnd			= input['Typical'][lastIndex];
+			this.advance			= this.valueEnd - this.valueStart;
+
+			// this.relativeAdvance stores the advance from last monowave...
+			var lastAdvance			= this.relativeAdvance;
+			if (lastAdvance === null) {			// ...unless it was the first monowave
+				this.relativeAdvance	= 100;	// in which case it is empty (null)
+			} else {
+				this.relativeAdvance	= 100 * this.advance/lastAdvance;
+			}
 				
 			// End of monowave also means generating next monowave from current point
 			// It essentially means creating a new monowave from the current one
@@ -81,6 +92,9 @@ class Monowave {
 		this.timeEnd	= new Date(input['Date'][lastIndex]);
 		this.valueEnd	= input['Typical'][lastIndex];
 		this.advance	= this.valueEnd - this.valueStart;
+		// this.relativeAdvance has stored the advance from last monowave
+		var lastAdvance			= this.relativeAdvance;
+		this.relativeAdvance	= 100 * this.advance/lastAdvance;
 	}
 }
 

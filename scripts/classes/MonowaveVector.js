@@ -1,5 +1,5 @@
 const appDir = require('electron').remote.app.getAppPath();
-const Monowave = require(`${appDir}/scripts/auxiliary/Monowave`);
+const Monowave = require(`${appDir}/scripts/classes/Monowave`);
 
 class MonowaveVector {
 	constructor(reference) {
@@ -32,6 +32,16 @@ class MonowaveVector {
 			// Force last Monowave to close on last Data point
 			currentMonowave.lastPoint(reference, index);
 		}
+	}
+
+	// Methods
+	evaluateDirectionalActions() {
+		var index = 0;
+		while (index < this.monowave.length()) {
+			//code
+			index++;
+		}
+
 	}
 }
 
