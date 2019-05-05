@@ -1,5 +1,10 @@
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//  Dependencies
+///////////////////////////////////////////////////////////////////////////////
 const appDir			= require('electron').remote.app.getAppPath();
 const OHLCTData			= require(`${appDir}/scripts/classes/OHLCTData`);
+const MonowaveVector	= require(`${appDir}/scripts/classes/MonowaveVector`);
 const TypicalTypes		= require(`${appDir}/scripts/global_constants`).TypicalTypes;
 const Resolutions		= require(`${appDir}/scripts/global_constants`).ResolutionSequence;
 const resolutionDelta	= require(`${appDir}/scripts/global_constants`).ResolutionDuration;
@@ -7,6 +12,12 @@ const resolutionDelta	= require(`${appDir}/scripts/global_constants`).Resolution
 function cpyObj(obj) {
 	return JSON.parse(JSON.stringify(obj));
 }
+
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//  Classes
+///////////////////////////////////////////////////////////////////////////////
 
 class typeStructure {
 	constructor() {
@@ -32,6 +43,12 @@ class OHLCStructure {
 			return this[resolution] = new TimeFrameStructure();
 		});
 	}
+	
+
+	///////////////////////////////////////////////////////////////////////////
+	//  Methods  /////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////
+
 
 	initialize(input, timeframe) {
 		for (var typicalTypes in this[timeframe]) {
@@ -135,6 +152,62 @@ class OHLCStructure {
 				);
 			}
 		}
+	}
+
+	calculateTypical() {
+		for (var timeframe in this) {
+			for (var typicalType in this[timeframe]) {
+				if (TypicalTypes.includes(typicalType)) {
+					var set = this[timeframe][typicalType]["full"];
+					switch (typicalType) {
+						case 'HLC':
+							set["Typical"] = set["Date"].map((el, i) => {
+								return (set['High'][i] + set['Low'][i] + set['Close'][i]) / 3.0;
+							});
+							this[timeframe][typicalType]["full"] = set;
+							break;
+						case 'HL':
+							set["Typical"] = set["Date"].map((el, i) => {
+								return (set['High'][i] + set['Low'][i]) / 2.0;
+							});
+							this[timeframe][typicalType]["full"] = set;
+							break;
+					}		
+				} else {
+					console.warn('Uncaught new Typical Type!');
+					alert('Uncaught new Typical Type!');
+				}			
+			}
+		}
+	}
+
+	removeTrailingData() {
+		for (var timeframe in this) {
+			for (var typicalType in this[timeframe]) {
+				var set = this[timeframe][typicalType]["full"].Typical;
+				// console.log(set);
+				var cutPosition = set.indexOf(Math.min(...set));
+				// console.log(cutPosition);
+				for (var key in this[timeframe][typicalType]["full"]) {
+					for (var i = cutPosition; i > 0; i--) {
+						this[timeframe][typicalType]["full"][key].shift();
+					}
+				}
+			}
+		}
+	}
+
+	// TODO: Apply Rule of Neutrality on Monowave Vector
+	generateMonowaves() {
+		for (var timeframe in this) {
+			for (var typicalType in this[timeframe]) {
+				var mwVector = new MonowaveVector(this[timeframe][typicalType]["full"]);
+				this[timeframe][typicalType]["mwVector"] = mwVector;
+				// TODO: Implement 2nd Step of Rule of Neutrality here
+				// 		 2nd Step will change the rules for generating a Monowave Vector
+				this[timeframe][typicalType]["trim"] = new OHLCTData(mwVector);
+			}
+		}		
 	}
 }
 

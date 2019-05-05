@@ -59,19 +59,14 @@ const JSZip					= require('jszip');
 const appDir				= require('electron').remote.app.getAppPath();
 const _HTMLClasses			= require(`${appDir}/scripts/DOM_info`)._HTMLClasses;
 const _DS					= require(`${appDir}/scripts/DOM_info`)._DS;
-const TypicalTypes			= require(`${appDir}/scripts/global_constants`).TypicalTypes;
 const Resolutions			= require(`${appDir}/scripts/global_constants`).ResolutionSequence;
 const CriticalHeaderList	= require(`${appDir}/scripts/global_constants`).CriticalHeaderList;
 const HeaderList			= require(`${appDir}/scripts/global_constants`).HeaderList;
 const OHLCTData				= require(`${appDir}/scripts/classes/OHLCTData`);
-// const Monowave				= require(`${appDir}/scripts/classes/Monowave`);
-const MonowaveVector		= require(`${appDir}/scripts/classes/MonowaveVector`);
 const OHLCStructure			= require(`${appDir}/scripts/classes/OHLCStructure`);
-const calcTypical			= require(`${appDir}/scripts/auxiliary/calc_typical`);
 const renameProperty		= require(`${appDir}/scripts/auxiliary/rename_property`);
 const correctKey			= require(`${appDir}/scripts/auxiliary/correct_key`);
 const detectTimeframe		= require(`${appDir}/scripts/auxiliary/detect_timeframe`);
-const reduceOHLC			= require(`${appDir}/scripts/auxiliary/reduce_OHLC`);
 const Stopwatch				= require(`${appDir}/scripts/auxiliary/stopwatch`);
 const Versions				= require(`${appDir}/scripts/auxiliary/versions`);
 
@@ -559,7 +554,7 @@ class DataController {
 
 				if(treatedData !== false) {
 					// Generate Resolutions of Data
-					self.populateResolutions(treatedData[0], treatedData[1]);
+					self.processData(treatedData[0], treatedData[1]);
 
 					// Send File Name to Parsed File List
 					self.updateFilename(inputFile.name);
@@ -663,7 +658,7 @@ class DataController {
 		}
 	}
 
-	populateResolutions (input, timeframe) {
+	processData (input, timeframe) {
 		// console.log(input, timeframe);
 
 		// Populate first set parsed from file
@@ -673,41 +668,13 @@ class DataController {
 		this.data.reduceOHLC(timeframe);
 
 		// Calculate Typical Values
-		// TODO: Move to OHLCStructure class
-		for (var resolution in this.data) {
-			TypicalTypes.map(typicalType => {
-				calcTypical(this.data[resolution][typicalType]["full"], typicalType);
-			});
-		}
+		this.data.calculateTypical();
 
 		// Remove Data Trailing the Lowest Typical value on each chart
-		// TODO: Move to OHLCStructure class
-		for (var timeframe in this.data) {
-			for (var typicalType in this.data[timeframe]) {
-				var cutVector = this.data[timeframe][typicalType]["full"].Typical;
-				// console.log(cutVector);
-				var cutPosition = cutVector.indexOf(Math.min(...cutVector));
-				// console.log(cutPosition);
-				for (var key in this.data[timeframe][typicalType]["full"]) {
-					for (var i = cutPosition; i > 0; i--) {
-						this.data[timeframe][typicalType]["full"][key].shift();
-					}
-				}
-			}
-		}
+		this.data.removeTrailingData();
 
 		// Convert OHLCT Data to Monowave Vectors, Apply Rule of Neutrality, and Trim
-		// TODO: Apply Rule of Neutrality on Monowave Vector
-		// TODO: Create a Class for Monowave Vector (include OHLCT2MonowaveVec inside it)
-		// 											(include Rule of Neutrality inside it)
-		for (var resolution in this.data) {
-			TypicalTypes.map(typicalType => {
-				var mwVector = new MonowaveVector(this.data[resolution][typicalType]["full"]);
-				// TODO: Implement Rule of Neutrality on this step
-				this.data[resolution][typicalType]["mwVector"] = mwVector;
-				this.data[resolution][typicalType]["trim"] = new OHLCTData(mwVector);
-			});
-		}
+		this.data.generateMonowaves();
 
 		// Disable non-parsed resolution options
 		// This should be on UI Controller, but it uses data form Data Controller

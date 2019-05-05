@@ -1,5 +1,6 @@
 const appDir				= require('electron').remote.app.getAppPath();
 const HeaderList			= require(`${appDir}/scripts/global_constants`).HeaderList;
+const MonowaveVector		= require(`${appDir}/scripts/classes/MonowaveVector`);
 
 function cpyObj (obj) {
 	return JSON.parse(JSON.stringify(obj));

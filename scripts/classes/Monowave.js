@@ -1,3 +1,8 @@
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//  Classes
+///////////////////////////////////////////////////////////////////////////////
+
 class Monowave {
 	constructor (reference) {
 		this.advance			= 0;			// Positive: Increasing; Negative: Decreasing
@@ -8,7 +13,7 @@ class Monowave {
 		this.valueEnd			= undefined;
 
 		if (reference instanceof OHLCTData) {
-			// Monowave Initialized from OHLCT object (first Monowave of Data)
+			// Monowave Initialized from OHLCT object (first Monowave of a series)
 			this.timeStart			= new Date(reference['Date'][0]);
 			this.valueStart			= reference['Typical'][0];
 			this.relativeAdvance	= null;		// By standard, first advance is 100%
@@ -34,6 +39,11 @@ class Monowave {
 			}
 		}
 	}
+
+
+	///////////////////////////////////////////////////////////////////////////
+	//  Methods  /////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////
 
 	// Check an Input point as monowave advance or signaling end of monowave
 	checkPoint (input, index) {
