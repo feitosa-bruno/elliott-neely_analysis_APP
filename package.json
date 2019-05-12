@@ -7,7 +7,8 @@
 	"dependencies": {
 		"jszip": "^3.2.1",
 		"npm": "^6.9.0",
-		"papaparse": "^4.6.3"
+		"papaparse": "^4.6.3",
+		"plotly.js-dist": "^1.47.4"
 	},
 	"devDependencies": {
 		"electron": "^5.0.0"

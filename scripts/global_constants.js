@@ -4,6 +4,7 @@ const TypicalTypes = [
 	'HLC',
 	'HL',
 ];
+const defaultTypicalType = TypicalTypes[0];
 
 // Resolution Types and Sequence
 // These must be tied to the HTML Files
@@ -46,6 +47,7 @@ const HeaderList = [
 
 module.exports = {
 	TypicalTypes		:	TypicalTypes,
+	defaultTypicalType	:	defaultTypicalType,
 	ResolutionSequence	:	ResolutionSequence,
 	CriticalHeaderList	:	CriticalHeaderList,
 	HeaderList			:	HeaderList,

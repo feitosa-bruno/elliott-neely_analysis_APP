@@ -2,16 +2,14 @@
 ///////////////////////////////////////////////////////////////////////////////
 //  Dependencies
 ///////////////////////////////////////////////////////////////////////////////
-const appDir			= require('electron').remote.app.getAppPath();
-const OHLCTData			= require(`${appDir}/scripts/classes/OHLCTData`);
-const MonowaveVector	= require(`${appDir}/scripts/classes/MonowaveVector`);
-const TypicalTypes		= require(`${appDir}/scripts/global_constants`).TypicalTypes;
-const Resolutions		= require(`${appDir}/scripts/global_constants`).ResolutionSequence;
-const resolutionDelta	= require(`${appDir}/scripts/global_constants`).ResolutionDuration;
-
-function cpyObj(obj) {
-	return JSON.parse(JSON.stringify(obj));
-}
+const appDir				= require('electron').remote.app.getAppPath();
+const OHLCTData				= require(`${appDir}/scripts/classes/OHLCTData`);
+const MonowaveVector		= require(`${appDir}/scripts/classes/MonowaveVector`);
+const TypicalTypes			= require(`${appDir}/scripts/global_constants`).TypicalTypes;
+const defaultTypicalType	= require(`${appDir}/scripts/global_constants`).defaultTypicalType;
+const Resolutions			= require(`${appDir}/scripts/global_constants`).ResolutionSequence;
+const resolutionDelta		= require(`${appDir}/scripts/global_constants`).ResolutionDuration;
+const cpyObj				= require(`${appDir}/scripts/auxiliary/copyObject`);
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -56,8 +54,9 @@ class OHLCStructure {
 		}
 	}
 
+	// TODO: (CRITICAL) TO REVISE (broken)
 	reduceOHLC(firstTimeframe) {
-		var firstInput = this[firstTimeframe][TypicalTypes[0]]["full"];
+		var firstInput = this[firstTimeframe][defaultTypicalType]["full"];
 
 		// Conversion Counters and Indexes
 		var t0 = {};
@@ -90,8 +89,11 @@ class OHLCStructure {
 		// The Ugly Part
 		// NOTE:	index is the most significant (most variant)
 		// 			_index is the subIndex for that given timeframe reduction
+		// DEBUG: this logic is showing bad behavior, need to debug
 		for (var typicalType in this[firstTimeframe]) {
 			for (var index in firstInput["Date"]) {
+				if (index == 0)	// Skip initial value already used in initialization
+					continue;
 				for (var timeframe in t0) {
 					if (firstInput["Date"][index] - t0[timeframe] >= resolutionDelta[timeframe]) {
 						var currEntry = this[timeframe][typicalType]["full"];
@@ -198,13 +200,15 @@ class OHLCStructure {
 	}
 
 	// TODO: Apply Rule of Neutrality on Monowave Vector
-	generateMonowaves() {
+	generateMonowaveVectors() {
 		for (var timeframe in this) {
 			for (var typicalType in this[timeframe]) {
 				var mwVector = new MonowaveVector(this[timeframe][typicalType]["full"]);
-				this[timeframe][typicalType]["mwVector"] = mwVector;
+				mwVector.evaluateDirectionalActions();
+				
 				// TODO: Implement 2nd Step of Rule of Neutrality here
 				// 		 2nd Step will change the rules for generating a Monowave Vector
+				this[timeframe][typicalType]["mwVector"] = mwVector;
 				this[timeframe][typicalType]["trim"] = new OHLCTData(mwVector);
 			}
 		}		

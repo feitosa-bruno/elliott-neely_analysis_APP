@@ -1,4 +1,4 @@
-let renameProperty = function (object, oldKey, newKey)  {
+function renameProperty (object, oldKey, newKey)  {
 	// Do nothing if the key names are the same
 	if (oldKey !== newKey) {
 		Object.defineProperty(
@@ -9,4 +9,5 @@ let renameProperty = function (object, oldKey, newKey)  {
 		delete object[oldKey];
 	}
 }
+
 module.exports = renameProperty;

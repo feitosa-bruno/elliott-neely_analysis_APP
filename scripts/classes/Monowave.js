@@ -1,18 +1,27 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
+//  Dependencies
+///////////////////////////////////////////////////////////////////////////////
+// None
+
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 //  Classes
 ///////////////////////////////////////////////////////////////////////////////
 
 class Monowave {
 	constructor (reference) {
 		this.advance			= 0;			// Positive: Increasing; Negative: Decreasing
+		this.direction			= null;			// Increasing: true; Decreasing: false
 		this.relativeAdvance	= 0;
 		this.OHLCTData			= {};
 		this.closed				= false;
 		this.timeEnd			= undefined;
 		this.valueEnd			= undefined;
 
-		if (reference instanceof OHLCTData) {
+		if (reference !== undefined)
+		if (reference.constructor.name === 'OHLCTData') {
 			// Monowave Initialized from OHLCT object (first Monowave of a series)
 			this.timeStart			= new Date(reference['Date'][0]);
 			this.valueStart			= reference['Typical'][0];
@@ -63,6 +72,7 @@ class Monowave {
 			// Save OHLC Data to Monowave
 			this.saveOHLCTData(input, index);
 			
+			this.direction	= this.advance > 0;
 			return true;					// Monowave still going
 		} else if (directionChange < 0) {	// Monowave Direction Changed
 			var lastIndex = index - 1;
@@ -71,6 +81,7 @@ class Monowave {
 			this.timeEnd			= new Date(input['Date'][lastIndex]);
 			this.valueEnd			= input['Typical'][lastIndex];
 			this.advance			= this.valueEnd - this.valueStart;
+			this.direction			= this.advance > 0;
 
 			// this.relativeAdvance stores the advance from last monowave...
 			var lastAdvance			= this.relativeAdvance;
@@ -102,6 +113,7 @@ class Monowave {
 		this.timeEnd	= new Date(input['Date'][lastIndex]);
 		this.valueEnd	= input['Typical'][lastIndex];
 		this.advance	= this.valueEnd - this.valueStart;
+		this.direction	= this.advance > 0;
 		// this.relativeAdvance has stored the advance from last monowave
 		var lastAdvance			= this.relativeAdvance;
 		this.relativeAdvance	= 100 * this.advance/lastAdvance;

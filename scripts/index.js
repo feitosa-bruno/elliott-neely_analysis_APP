@@ -55,20 +55,17 @@
 
 // 	Requires
 const Papa					= require('papaparse');
-const JSZip					= require('jszip');
+const Plotly				= require('plotly.js-dist');
 const appDir				= require('electron').remote.app.getAppPath();
 const _HTMLClasses			= require(`${appDir}/scripts/DOM_info`)._HTMLClasses;
 const _DS					= require(`${appDir}/scripts/DOM_info`)._DS;
-const Resolutions			= require(`${appDir}/scripts/global_constants`).ResolutionSequence;
-const CriticalHeaderList	= require(`${appDir}/scripts/global_constants`).CriticalHeaderList;
-const HeaderList			= require(`${appDir}/scripts/global_constants`).HeaderList;
-const OHLCTData				= require(`${appDir}/scripts/classes/OHLCTData`);
+const defaultTypicalType	= require(`${appDir}/scripts/global_constants`).defaultTypicalType;
 const OHLCStructure			= require(`${appDir}/scripts/classes/OHLCStructure`);
-const renameProperty		= require(`${appDir}/scripts/auxiliary/rename_property`);
-const correctKey			= require(`${appDir}/scripts/auxiliary/correct_key`);
-const detectTimeframe		= require(`${appDir}/scripts/auxiliary/detect_timeframe`);
-const Stopwatch				= require(`${appDir}/scripts/auxiliary/stopwatch`);
-const Versions				= require(`${appDir}/scripts/auxiliary/versions`);
+const CSVtoOHLCT			= require(`${appDir}/scripts/classes/CSVtoOHLCT`);
+const PlotLyPlotData		= require(`${appDir}/scripts/classes/PlotlyPlotData`);
+const Relayout				= require(`${appDir}/scripts/classes/Relayout`);
+const Stopwatch				= require(`${appDir}/scripts/lib/stopwatch`);
+const Versions				= require(`${appDir}/scripts/lib/versions`);
 
 // User Controls List
 const controls = [
@@ -196,10 +193,9 @@ class GlobalController {
         .getElementById(_DS.typicalType)
 		.addEventListener(
 			'change',
-			this._UIController.changeTypicalType.bind(this._UIController),
+			this.handleGraphUpdate.bind(this._UIController),
 			false
 		);
-		// This doesn't update the graph, just disable/enable other options
 	
 		// Trimmed Change Event Listener
 		// Event Callback Function is called changeTrimmedOption
@@ -263,6 +259,13 @@ class GlobalController {
 		// Event Callback Function is called resizePlotBox
 		// Resizes PlotBox to fill rest of page height
 		window.addEventListener('resize', this.resizePlotBox, false);
+
+		// Disable Unused Resolutions Event Listener
+        // Event Callback Function is called disableUnusedResolutions
+        // 'this' is tied to the GlobalController object via the 'bind(this)' so the
+		// GlobalController keeps access to the other Modules (UI and Data)
+		document
+		.addEventListener('disable_resolutions', this.disableResolutions.bind(this), false);
 	}
 
 	changeZoomControl (e) {
@@ -289,26 +292,20 @@ class GlobalController {
 		}
 	}
 
-    handleFileSelect (e) {
-		var files = e.target.files; // File list
+	// Checks User Inputted File and sends it to Parsing
+	//	: Interaction between Global Module and Data Module
+	//		: Global Module sends File Data to Data Module
+    handleFileSelect (event) {
+		var file = event.target.files[0];		// User File
 
-		// // Clear Present Graphs when selecting new files
-		// this._DataController.clearParsedData();
-
-		// Disable Graph plotting and Output generation if no files were inputted
-		if (Object.keys(files).length === 0) {
-			this.disableButtons();
+		if (!(file instanceof File)) {
+			alert("File Input Failed");
 		} else {
 			inputParsingSW.start();
-
-			// Work with inputted files otherwise
-			// Go through all files
-			for (var i = 0, f; f = files[i]; i++) {
-				if(f != undefined){
-					// Parse CSV file
-					this._DataController.parseFile(f);
-				}
-			}
+			// Work with inputted file otherwise
+			
+			// Parse CSV file
+			this._DataController.parseFile(file);
 		}
 	}
 	
@@ -386,27 +383,30 @@ class GlobalController {
 		}
 	}
 
+	// Disable Unused resolution options
+	disableResolutions () {
+		var set = this._DataController.data;
+		for (var resolution in set) {
+			if (set[resolution][defaultTypicalType]["full"] === null) {
+				var resolutionOption = document.getElementById(resolution);
+				resolutionOption.disabled = true;
+				resolutionOption.selected = false;	
+			}
+		}
+	}
+
+	// Update Graph
+	//	: Interaction between UI Module and Data Module via Global Module
+	//		: Global Module sends Data Module information to UI Module
 	handleGraphUpdate () {
 		if (this._DataController.getFilename() !== undefined){
 			graphPlottingSW.start();
 			console.log("Data Updated, Starting Graph Plotting");
 	
-			var key = this._UIController.getKey();
-			
-			// Plot Graph
-			if (key.typicalType !== "combined") {
-				this._DataController.plotData = this._DataController.getPlotData(key);
-			} else {
-				this._DataController.plotData = [];
-				key.typicalType = "HLC";
-				this._DataController.plotData.push(this._DataController.getPlotData(key));
-				key.typicalType = "HL";
-				this._DataController.plotData.push(this._DataController.getPlotData(key));
-			}
-			// console.log(plotData);
-			this._UIController.plotGraph(
-				this._DataController.plotData,
-				this._DataController.getFilename()
+			this._UIController.plotData(
+				this._DataController.data,
+				this._DataController.getFilename(),
+				this.getKey()
 			);
 		} else {
 			console.warn('Nothing to Plot. No File Successfully Parsed.');
@@ -414,70 +414,45 @@ class GlobalController {
 		}
 	}
 
-	validDataParsed () {
-		inputProcessingSW.stop();
-
-		// Enable Force Graph Plotting Button
-		this.enablePlotGraphButton();
-
-		// Enable Options
-		this.enableOptions();
-
-		// Graph Plotting
-		this.handleGraphUpdate();
-
-		// // Start Output Generation
-		// this.generateOutput();
+	getKey () {
+		return {
+			resolution:		this.getResolution(),
+			typicalType:	this.getTypicalType(),
+			type:			this.getTrimCheck(),
+			dateType:		this.getDateCheck(),
+			graphType:		this.getGraphType(),
+			yAxisType:		this.getYAxisType(),
+			};
 	}
 
-	generateOutput () {
-		// TODO: Redo this whole section after analysis is complete.
+	getResolution () {
+		return document.getElementById(_DS.resolution).value;
+	}
 
-		outputGenerationSW.start();
-
-		console.log("Output Generation Linked to Generate Output(s) Button");
-
-		var name = 'output.zip';
-		var zip = new JSZip();
-
-		var parsedData = this._DataController.getParsedData();
-		var parsedDataTrimmed = this._DataController.getParsedDataTrimmed();
-		var parsedDataFilename = this._DataController.getFilename();
-		var file = null;
-		var filename = null;
-		// console.log(parsedData);
-		// console.log(parsedDataList);
-		if (parsedDataFilename.includes('OHLCT_')) {
-			filename = `${parsedDataFilename}`;	
+	getTrimCheck () {
+		if (document.getElementById(_DS.trimCheck).checked) {
+			return "trim";
 		} else {
-			filename = `OHLCT_${parsedDataFilename}`;
+			return "full";
 		}
-		file = this._DataController.OHLCTtoCSV(parsedData, filename);
-		zip.file(file["name"], file["data"]);
-		// console.log(file);
-
-		filename = `trimmed/trim${filename}`;
-		file = this._DataController.OHLCTtoCSV(parsedDataTrimmed, filename);
-		zip.file(file["name"], file["data"]);
-
-		zip
-		.generateAsync({type: "base64"})
-		.then(content => {
-			// console.log(content);
-			document
-			.getElementById(_DS.genHyperLink)
-			.setAttribute("href", "data:application/zip;base64," + content);
-			document
-			.getElementById(_DS.genHyperLink)
-			.setAttribute("download", `${name}`);
-
-			outputGenerationSW.stop();
-
-			// Allow Output Generation after Zip is complete
-			this.enableGenerateOutputButton();
-		});
 	}
-	
+
+	getTypicalType () {
+		return document.getElementById(_DS.typicalType).value;
+	}
+
+	getDateCheck () {
+		return document.getElementById(_DS.dateCheck).checked;
+	}
+
+	getGraphType () {
+        return document.getElementById(_DS.graphType).value;
+    }
+
+	getYAxisType () {
+        return document.getElementById(_DS.yAxisType).value;
+	}
+
 	resizePlotBox () {
 		var headerHeight = document.getElementById(_DS.header).offsetHeight;
 		// console.log(header_height);
@@ -488,25 +463,28 @@ class GlobalController {
 		document.getElementById(_DS.plotArea).style.height = `${plotBoxHeight}px`;
 	}
 
-	initializeInputs (mode) {
-        // Disable Plot Button
-		this.disablePlotGraphButton();
+	validDataParsed () {
+		// Enable Options
+		this.enableOptions();
 
-        // Disable Data Generation Button
-		this.disableGenerateOutputButton();
-
+		// Graph Plotting
+		this.handleGraphUpdate();
+	}
+	
+	initializeInputs () {
 		// Disable Options
 		this.disableOptions();
 
 		// Disable Controls
 		this.disableControls();
 
+		// Set Initial Plot Box Size
 		this.resizePlotBox();
 	}
 
     initialize () {
         this.setupEventListeners();
-		this.initializeInputs("silent");
+		this.initializeInputs();
         console.log('Application has started.');
     }
 }
@@ -533,128 +511,38 @@ class DataController {
         // Save 'this' state for usage during parsing
         var self = this;
 
-        Papa.parse(inputFile, {
+		Papa.parse(inputFile, {
             header: true,
             dynamicTyping: true,
             skipEmptyLines: true,
             complete: function(results) {
-				// Input Parsed
-				inputParsingSW.stop();
-				// Processing started
-				inputProcessingSW.start();
-				
-				// console.log(self);
-				// console.log(results);
-
-				// Treat Parsed Data
-				var treatedData = self.processParsedOHLCData(
-					results.data,
-					inputFile.name
-					);
-
-				if(treatedData !== false) {
-					// Generate Resolutions of Data
-					self.processData(treatedData[0], treatedData[1]);
-
-					// Send File Name to Parsed File List
-					self.updateFilename(inputFile.name);
-					
-					// Enable Graph Plotting via firing Event
-					var event = new Event('valid_data_entered');
-					document.dispatchEvent(event);
-				}
+				self.parseFinished(results.data, inputFile.name);
             }
-        });
+		});
 	}
 
-	processParsedOHLCData (parsedInput) {
-		var headerIsOK		= true;		// Valid File Header check
-		var parsedHeader	= Object.keys(parsedInput[0]);
-		var timeframe		= null;
+	parseFinished(data, filename) {
+		// Input File Parsed
+		inputParsingSW.stop();
+		// Processing started
+		inputProcessingSW.start();
 
-		var output = {
-			Date: [],
-			Open: [],
-			High: [],
-			Low: [],
-			Close: [],
-			TickVolume: [],
-			Volume: [],
-			Spread: [],
-		};
+		// Treat Parsed Data
+		var treatedData = new CSVtoOHLCT(data);
 
-		// console.log(parsedHeader);
-		
-		// Remove Special Characters from Header and Lowercase it
-		parsedHeader = parsedHeader.map(el => {
-			return el.replace(/[^0-9a-zA-Z]/g,"").toLowerCase()
-		});
+		if (treatedData.isValidData) {
+			// Store Processed OHLCT 
+			this.processData(treatedData.OHLCT, treatedData.timeframe);
 
-		// console.log(parsedHeader);
+			// Send File Name to Parsed File List
+			this.updateFilename(filename);
 
-		// List invalid headers in Parsed Data Header
-		CriticalHeaderList.map(criticalHeader => {
-			headerIsOK &=  parsedHeader.includes(criticalHeader.toLowerCase());
-		});
-
-		// console.log(`${headerIsOK ? 'true' : 'false'}`);
-		// console.log(parsedInput);
-
-		if (headerIsOK) {
-
-			// Go through Data
-			parsedInput.map(el => {
-				// console.log(el);
-				
-				// Correct Keys in Parsed Data
-				for (var key in el) {
-					renameProperty(
-						el,
-						key,
-						correctKey(key)
-					);
-				}
-
-				// console.log(el);
-				
-				// Correct Data Timestamp
-				if (el.hasOwnProperty('Time')){
-					el['Date'] = new Date(`${el['Date']} ${el['Time']}`);
-					delete el['Time'];
-				} else {
-					el['Date'] = new Date(`${el['Date']}`);
-				}
-
-				// console.log(el);
-				
-				// Push Parsed Data
-				HeaderList.map(header => {
-					output[header].push(el[header]);
-				});
-				
-				// console.log(output);
-			});
-
-			// Check if the timestamps are progressive or regressive
-			var Tstep =
-				  new Date(output['Date'][1])
-				- new Date(output['Date'][0]);
-			// Reverse the data if the time progression is regressive
-			if (Tstep < 0) {
-				for (var key in output) 
-					output[key] = output[key].reverse();
-			}
-
-			// Detect Parsed Data Timeframe
-			timeframe = detectTimeframe(output['Date'][0], output['Date'][1]);
-
-			// Return Processed Data & Identified Timeframe
-			return [new OHLCTData(output), timeframe];
+			// Enable Graph Plotting via firing Event
+			var event = new Event('valid_data_entered');
+			document.dispatchEvent(event);
 		} else {
-			// Throw Error on Parsing and Return an error
-			console.warn(`Header of file "${fileName}" is incorrect.`);
-			alert(`Header of file "${fileName}" is incorrect.`);
-			return false;
+			console.warn(`File ${filename} is not a valid CSV File.`);
+			alert(`File ${filename} is not a valid CSV File.`);
 		}
 	}
 
@@ -674,54 +562,14 @@ class DataController {
 		this.data.removeTrailingData();
 
 		// Convert OHLCT Data to Monowave Vectors, Apply Rule of Neutrality, and Trim
-		this.data.generateMonowaves();
+		this.data.generateMonowaveVectors();
 
-		// Disable non-parsed resolution options
-		// This should be on UI Controller, but it uses data form Data Controller
-		Resolutions.map(resolution => {
-			if (this.data[resolution] === null) {
-				var resolutionOption = document.getElementById(resolution);
-				resolutionOption.disabled = true;
-				resolutionOption.selected = false;
-			}
-		});
-
-		// console.log(this.data);
-	}
-
-	OHLCTtoCSV (input, fileName) {
-
-		// console.log(input);
-
-		var output = [['Date','Open','High','Low','Close','Typical']];
-
-		input['Date'].map((el, index) => {
-			output.push([
-				input['Date'][index],
-				input['Open'][index],
-				input['High'][index],
-				input['Low'][index],
-				input['Close'][index]
-			]);
-		});
-
-		// console.log(output);
-		var csvOutput = Papa.unparse(output, {delimiter: ","});
-		// console.log(csvOutput);
-
-		return {data: csvOutput, name: `${fileName}`};
-	}
+		// Disable Unused Resolution Options
+		var event = new Event('disable_resolutions');
+		document.dispatchEvent(event);	}
 
 	updateFilename (inputFileName) {
 		this.parsedFilesList = inputFileName;
-	}
-
-	getPlotData (key) {
-		if (key.trimCheck) {
-			return this.data[key.resolution][key.typicalType]['trim'];
-		} else {
-			return this.data[key.resolution][key.typicalType]['full'];
-		}
 	}
 
 	getFilename () {
@@ -736,183 +584,45 @@ class DataController {
 
 class UIController {
     constructor () {
-		this.graphPlotted = false;
-		this.plottedData = null;
-		this.relayoutNotTied = true;
-		this.savedRelayout = {
-			"xaxis.autorange": true,
-			"yaxis.autorange": true,
-			"xaxis.range[0]": undefined,
-			"xaxis.range[1]": undefined,
-			"yaxis.range[0]": undefined,
-			"yaxis.range[1]": undefined,
-		};
-		this.relayoutHistory = [];
-		this.relayoutDateHistory = [];
-		this.currentRelayout = 0;
+		this.key				= null;
+		this.graphPlotted		= false;
+		this.plotlyData			= null;
+		this.relayout			= new Relayout();
 	}
 
-	plotGraph (parsedData, parsedFilename) {
+	plotData (data, filename, key) {
+		// Store Data Key
+		this.key = key;
+
+		// Select OHLCTData Plot Data from OHLCStructure
+		this.plotlyData = new PlotLyPlotData(data, filename, key);
+
 		// Plot OHLC Graph
-		this.plotOHLCGraph(parsedData, parsedFilename, _DS.plotDIV);
-		
-		// Keep record of the Plotted Data on UI Controller (solves fitting problems)
-		if (parsedData instanceof Array) {
-			this.plottedData = parsedData[0];
-		} else {
-			this.plottedData = parsedData;
-		}
-		
+		this.plotGraph(this.plotlyData, _DS.plotDIV);
 		
 		// Tie Layout Change Observer (only once)
 		// And don't you ever forget to bind it to the UI Controller ever again
-		if (this.relayoutNotTied) {
+		if (this.relayout.notTied) {
+			this.relayout.importPlotlyPlotData(this.plotlyData, key);
 			document
 			.getElementById(_DS.plotDIV)
 			.on('plotly_relayout', this.updateSavedRelayout.bind(this));
-			this.relayoutNotTied = false;
 		}
 	}
 
-    plotOHLCGraph (parsedData, dataName, plotDIV) {
-		var combinedData = false;
-
-		// Separate HL Typical data if both Typical Types were parsed
-		if (parsedData instanceof Array) {
-			var HLTypical = parsedData[1]['Typical'];
-			parsedData = parsedData[0];
-			combinedData = true;
-		}
-
-		// console.log(parsedData);
-
-        var OHLCTrace = {
-			name: 'OHLC',
-            x:		parsedData['Date'],
-            close:	parsedData['Close'],
-            high:	parsedData['High'],
-            low:	parsedData['Low'],
-            open:	parsedData['Open'],
-
-            decreasing: {line: {color: '#FF0000'}},
-			increasing: {line: {color: '#17BECF'}},
-			
-			type: this.getGraphType(),
-            line: {color: '#666666'},
-			tickwidth: '0.5',
-		};
-
-		// Need Revision
-		if (combinedData) {
-			var TypicalHLCTrace = {
-				name: `Typical (HLC)`,
-				x: parsedData['Date'],
-				y: parsedData['Typical'],
-				
-				type: 'scatter',
-				mode: 'lines',
-				line: {color: '#005500', dash: 'dash'},
-			};
-			var TypicalHLTrace = {
-				name: `Typical (HL)`,
-				x: parsedData['Date'],
-				y: HLTypical,
-				
-				type: 'scatter',
-				mode: 'lines',
-				line: {color: '#DD6600', dash: 'dashdot'},
-			};
-			if (this.getGraphType() !== 'none') {
-				var data = [OHLCTrace, TypicalHLCTrace, TypicalHLTrace];
-			} else {
-				var data = [TypicalHLCTrace, TypicalHLTrace];
-			}
-		} else {
-			var TypicalTrace = {
-				name: `Typical (${this.getTypicalType()})`,
-				x: parsedData['Date'],
-				y: parsedData['Typical'],
-				
-				type: 'scatter',
-				mode: 'lines',
-				line: {color: '#000000'},
-			};	
-			if (this.getGraphType() !== 'none') {
-				var data = [OHLCTrace, TypicalTrace];
-			} else {
-				var data = [TypicalTrace];
-			}
-		}
-        
-        var layout = {
-			title: `Source: ${dataName}`,
-            dragmode: 'zoom',
-            margin: {
-                r: 10,
-                t: 25,
-                b: 40,
-                l: 50
-            },
-            showlegend: false,
-            xaxis: {
-				visible: this.getDateCheck() ? true : false,
-				title: 'Date',
-				type: this.getDateCheck() ? 'date' : 'category',
-				
-				domain: [0, 1],
-				rangeslider: {
-                    visible: false,
-                },
-				
-				autorange: {},
-                range: [],
-            },
-            yaxis: {
-				visible: true,
-				title: 'Price',
-
-				showticklabels: true,
-				ticks: 'inside',
-				type: this.getYAxisType(),
-				
-				autorange: {},
-                range: [],
-			},
-		};
-
+    plotGraph (plotData, plotDIV) {
 		if (this.graphPlotted) {
 			// Get from saved relayout
-			var relayout = this.getCurrentRelayout();
-			for (var key in relayout) {
-				switch (key) {
-					case "xaxis.autorange":
-						layout.xaxis.autorange = relayout[key];
-						break;
-					case "yaxis.autorange":
-						layout.yaxis.autorange = relayout[key];
-						break;
-					case "xaxis.range[0]":
-						layout.xaxis.range[0] = relayout[key];
-						break;
-					case "xaxis.range[1]":
-						layout.xaxis.range[1] = relayout[key];
-						break;
-					case "yaxis.range[0]":
-						layout.yaxis.range[0] = relayout[key];
-						break;
-					case "yaxis.range[1]":
-						layout.yaxis.range[1] = relayout[key];
-						break;
-				}
-			}
+			// Set Layout Information according to Relayout
+			this.relayout.set(plotData);
 
-			Plotly.react(plotDIV, data, layout, {responsive: true})
+			Plotly.react(plotDIV, plotData.trace, plotData.layout, {responsive: true})
 			.then(() => {
 				console.log("Graph Updated.");
 				graphPlottingSW.stop();
 			});
 		} else {
-			Plotly.newPlot(plotDIV, data, layout, {responsive: true})
+			Plotly.newPlot(plotDIV, plotData.trace, plotData.layout, {responsive: true})
 			.then(() => {
 				console.log("Graph Plotted.");
 				this.graphPlotted = true;
@@ -943,12 +653,14 @@ class UIController {
 		// Enable Redo Zoom Control
 		this.changeZoomControlState(_DS.redoZoom, true);
 		
-		this.currentRelayout++;
+		// Change to Previous Relayout
+		this.relayout.previousPosition();
 
 		// Trigger Graph Potting
 		this.triggerGraphUpdate();
 		
-		if (this.currentRelayout > this.relayoutHistory.length - 1) {
+		// Disable Redo Zoom Control if it's the First Relayout
+		if (this.relayout.firstPosition()) {
 			// Disable Undo Zoom Control
 			this.changeZoomControlState(_DS.undoZoom, false);
 		}
@@ -958,12 +670,14 @@ class UIController {
 		// Enable Undo Zoom Control
 		this.changeZoomControlState(_DS.undoZoom, true);
 
-		this.currentRelayout--;
+		// Change to Next Relayout
+		this.relayout.nextPosition();
 		
 		// Trigger Graph Potting
 		this.triggerGraphUpdate();
 
-		if (this.currentRelayout === 0) {
+		// Disable Redo Zoom Control if it's the Last Relayout
+		if (this.relayout.lastPosition()) {
 			// Disable Redo Zoom Control
 			this.changeZoomControlState(_DS.redoZoom, false);
 		}
@@ -974,48 +688,8 @@ class UIController {
 		// It's tied to the call by Plotly when called via 'plotly_relayout' Event
 		// This method can also be called programmatically with any given 'relayout'
 
-		// Save relayout information
-		for (var key in this.savedRelayout) {
-			// Save property if available
-			if (relayout.hasOwnProperty(key)) {
-				this.savedRelayout[key] = relayout[key];
-			}
-			// Erase autorange property if not present on relayout
-			if (!relayout.hasOwnProperty(key) && key.includes('autorange')) {
-				this.savedRelayout[key] = {};
-			}
-		}
-		// console.log(this.savedRelayout);
-
-		// Save current relayout to history (maximum 10 items)
-		this.saveRelayout(this.savedRelayout);
-	}
-
-	saveRelayout (relayout) {
-		while (this.currentRelayout !== 0) {
-			this.relayoutHistory.shift();
-			this.relayoutDateHistory.shift();
-			this.currentRelayout--;
-		}
-
-		if (this.relayoutHistory.length > 9) {
-			this.relayoutHistory.pop();
-			this.relayoutDateHistory.pop();
-		}
-		
-		this.relayoutHistory.unshift(JSON.parse(JSON.stringify(relayout)));
-
-		if (this.getDateCheck()) {
-			this.relayoutDateHistory.unshift(
-				[relayout["xaxis.range[0]"], relayout["xaxis.range[1]"]]
-				);
-		} else {
-			var xMin = Math.floor(relayout["xaxis.range[0]"]);
-			var xMax = Math.floor(relayout["xaxis.range[1]"]) + 1;
-			this.relayoutDateHistory.unshift(
-				[this.plottedData['Date'][xMin],this.plottedData['Date'][xMax]]
-				);
-		}
+		// Update Current Relayout and save to history (max 10 items)
+		this.relayout.update(relayout, this.key);
 
 		// Disable Redo Zoom Control
 		this.changeZoomControlState(_DS.redoZoom, false);
@@ -1025,142 +699,27 @@ class UIController {
 	}
 
 	fitGraphVertically () {
-		var relayout = this.getCurrentRelayout();
-		if(!relayout){
-			// Quit if Current Layout is undefined
-			return false;
-		}
-		relayout = JSON.parse(JSON.stringify(relayout));
-		
-		var xMin;
-		var xMax;
-		var index = 0;
-
-		if (this.getDateCheck()){
-			xMin = new Date(relayout["xaxis.range[0]"]);
-			while (xMin > this.plottedData['Date'][index]){
-				index++;
-			}
-			xMin = index - 1;
-			
-			xMax = new Date(relayout["xaxis.range[1]"]);
-			while (xMax > this.plottedData['Date'][index]){
-				index++;
-			}
-			xMax = index;
-		} else {
-			xMin = Math.floor(relayout["xaxis.range[0]"]);
-			xMax = Math.floor(relayout["xaxis.range[1]"]) + 1;	
-		}
-		// console.log(xMin, xMax, this.plottedData['Date'].length);
-				
-		// console.log(xMin, this.plottedData['Date'][index]);
-		
-		var yMin = this.plottedData['Low'][xMin];
-		var yMax = this.plottedData['High'][xMin];
-		
-		index = xMin;
-		while (index < xMax) {
-			yMin = Math.min(yMin, this.plottedData['Low'][index]);
-			yMax = Math.max(yMax, this.plottedData['High'][index]);
-			index++;
-		}
-
-		// console.log('Interval: ',xMin, xMax);
-		// console.log('Found: ', yMin, yMax);
-
-		// console.log(relayout["yaxis.range[0]"], relayout["yaxis.range[1]"]);
-		if (this.getYAxisType() === "log") {
-			relayout["yaxis.range[0]"] =  Math.log10(yMin);
-			relayout["yaxis.range[1]"] =  Math.log10(yMax);
-		} else {
-			relayout["yaxis.range[0]"] =  yMin;
-			relayout["yaxis.range[1]"] =  yMax;
-		}
-		
-		// console.log(this.getCurrentRelayout());
-		// console.log(relayout);
-		
-		// Save current relayout to history (maximum 10 items)
-		this.saveRelayout(relayout);
-		
-		// this.updateSavedRelayout(relayout);
-		
+		// Fit Y Axis
+		this.relayout.fitYAxis();
+						
 		// Trigger Graph Potting
 		this.triggerGraphUpdate();
 	}
 
 	changeYAxis () {
-		var relayoutHistory = this.relayoutHistory;
-		
-		// console.log(relayoutHistory);
-		
-		if (this.getYAxisType() === 'log'){
-			// Changed to Log
-			relayoutHistory.map(el => {
-				el['yaxis.range[0]'] = Math.log10(el['yaxis.range[0]']);
-				el['yaxis.range[1]'] = Math.log10(el['yaxis.range[1]']);
-			});
-		} else {
-			// Changed to Linear
-			relayoutHistory.map(el => {
-				el['yaxis.range[0]'] = 10**el['yaxis.range[0]'];
-				el['yaxis.range[1]'] = 10**el['yaxis.range[1]'];
-			});
-		}
-
-		// console.log(xMin, xMax, this.plottedData['Date'].length);
-		
+		// Update Relayout y Axis type
+		this.relayout.updateYAxis()
+				
 		// Trigger Graph Potting
 		this.triggerGraphUpdate();
 	}
 
 	changeXAxisType () {
-		var relayoutHistory = this.relayoutHistory;
+		// Update Relayout x Axis type
+		this.relayout.updateXAxis();
 		
-		// console.log(relayoutHistory);
-		
-		if (this.getDateCheck()){
-			// Changed to Date
-			relayoutHistory.map(el => {
-				var xMin = Math.floor(el['xaxis.range[0]']);
-				var xMax = Math.floor(el['xaxis.range[1]']) + 1;
-				el['xaxis.range[0]'] = this.plottedData['Date'][xMin];
-				el['xaxis.range[1]'] = this.plottedData['Date'][xMax];
-			});
-		} else {
-			// Changed to Category
-			relayoutHistory.map(el => {
-				var xMin = new Date(el['xaxis.range[0]']);
-				var xMax = new Date(el['xaxis.range[1]']);
-				var index = 0;
-
-				while (xMin > this.plottedData['Date'][index]){
-					index++;
-				}
-				xMin = index - 1;
-				
-				while (xMax > this.plottedData['Date'][index]){
-					index++;
-				}
-				xMax = index;
-				el['xaxis.range[0]'] = xMin;
-				el['xaxis.range[1]'] = xMax;
-			});
-		}
-
-		// console.log(xMin, xMax, this._DataController.plotData['Date'].length);
-				
 		// Trigger Graph Potting
 		this.triggerGraphUpdate();
-	}
-
-	changeTypicalType () {
-		var trimCheck		= document.getElementById(_DS.trimCheck);
-		var combinedTypical	= document.getElementById(_DS.combinedTypical);
-
-		// Disable Changing Trim option when HL+HLC is being used
-		trimCheck.disabled = combinedTypical.selected;
 	}
 
 	changeTrimmedOption () {
@@ -1168,13 +727,7 @@ class UIController {
 		this.toggleCombinedTypical();
 	}
 
-	toggleCombinedTypical () {
-		var trimCheck		= document.getElementById(_DS.trimCheck);
-		var combinedTypical	= document.getElementById(_DS.combinedTypical);
-
-		combinedTypical.disabled = trimCheck.checked;
-	}
-
+	// TODO: Revise
 	changeXAxisResolution (data) {
 		if (!this.getDateCheck()) {
 			// Not using Date when changing Resolution, change X axis
@@ -1210,56 +763,6 @@ class UIController {
 
 		// Trigger Graph Potting
 		this.triggerGraphUpdate();
-	}
-
-	relayoutConsole () {
-		console.log(`Current Position: ${this.currentRelayout}`);
-		console.log(`Current Relayout: `, this.getCurrentRelayout());
-		console.log(`Full Relayout History: `, this.relayoutHistory);
-		console.log(`Full Relayout Date History: `, this.relayoutDateHistory);
-	}
-	
-	getCurrentRelayout () {
-		return this.relayoutHistory[this.currentRelayout];	
-	}
-
-	setCurrentRelayout (relayout) {
-		this.relayoutHistory[this.currentRelayout] = relayout;	
-	}
-
-	getGraphType () {
-        return document.getElementById(_DS.graphType).value;
-    }
-
-	getYAxisType () {
-        return document.getElementById(_DS.yAxisType).value;
-	}
-
-	getDateCheck () {
-		return document.getElementById(_DS.dateCheck).checked;
-	}
-
-	getResolution () {
-		return document.getElementById(_DS.resolution).value;
-	}
-
-	getKey () {
-		var resolution	= this.getResolution();
-		var typicalType	= this.getTypicalType();
-		var trimCheck	= this.getTrimCheck();
-		return {
-			resolution	:	resolution,
-			typicalType	:	typicalType,
-			trimCheck	:	trimCheck
-		};
-	}
-
-	getTypicalType () {
-		return document.getElementById(_DS.typicalType).value;
-	}
-
-	getTrimCheck () {
-		return document.getElementById(_DS.trimCheck).checked;
 	}
 }
 

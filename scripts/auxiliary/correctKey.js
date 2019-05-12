@@ -1,4 +1,4 @@
-let correctKey = function (name)  {
+function correctKey (name)  {
 	var newName = name.replace(/[^0-9a-zA-Z]/g,"").toLowerCase();
 	if (newName === 'tickvol') {
 		newName = 'TickVolume';
@@ -9,4 +9,5 @@ let correctKey = function (name)  {
 	}
 	return newName;
 }
+
 module.exports = correctKey;

@@ -1,14 +1,26 @@
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//  Dependencies
+///////////////////////////////////////////////////////////////////////////////
 const appDir				= require('electron').remote.app.getAppPath();
 const HeaderList			= require(`${appDir}/scripts/global_constants`).HeaderList;
-const MonowaveVector		= require(`${appDir}/scripts/classes/MonowaveVector`);
+const cpyObj				= require(`${appDir}/scripts/auxiliary/copyObject`);
 
-function cpyObj (obj) {
-	return JSON.parse(JSON.stringify(obj));
-}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//  Classes
+///////////////////////////////////////////////////////////////////////////////
 
 class OHLCTData {
 	constructor (input) {
-		if (input instanceof MonowaveVector) {
+		if (input === undefined) {
+			// Empty Initialization of OHLCT Data
+			for (var index in HeaderList) {
+				var key = HeaderList[index];
+				this[key]	= [];
+			}
+		} else if (input.constructor.name === 'MonowaveVector') {
 			// Initialize OHLCT Data from Monowave Vector
 			// Uses 1st value of each Monowave in the Vector, plus last value of the last Monowave
 			// 3 Steps: Initialization, Pass-through, Finalization
@@ -46,7 +58,7 @@ class OHLCTData {
 					this[key]	= cpyObj(input[key]);
 				}
 			}
-		} else if (input !== undefined) {
+		} else {
 			// Initialize OHLCT Data from similar structure
 			// Keys present are copied. Non-present are initialized empty
 			for (var index in HeaderList) {
@@ -61,12 +73,6 @@ class OHLCTData {
 				} else {
 					this[key]	= [];	// Empty Initialization
 				}
-			}
-		} else {
-			// Empty Initialization of OHLCT Data
-			for (var index in HeaderList) {
-				var key = HeaderList[index];
-				this[key]	= [];
 			}
 		}
 	}

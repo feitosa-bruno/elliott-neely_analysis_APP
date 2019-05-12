@@ -1,4 +1,4 @@
-let detectTimeframe = function (time1, time2)  {
+function detectTimeframe (time1, time2)  {
 	var timeframe = (time2 - time1)/60000;
 	// console.log(timeframe);
 	switch (timeframe) {
@@ -15,4 +15,5 @@ let detectTimeframe = function (time1, time2)  {
 			return false;
 	}
 }
+
 module.exports = detectTimeframe;

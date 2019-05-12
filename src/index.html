@@ -3,34 +3,19 @@
 
 <head>
 	<meta charset="UTF-8">
-	<script src="../scripts/plotly.1-41-3.min.js"></script>
 	<link rel="stylesheet" type="text/css" href="../style/index.css">
 </head>
 
 <body>
 	<div id="header" class="row app_header">
 		<div class="column left">
-			<div class="button_div">
-				<button class="full_button plot_button" id="plot_btn" type="button">
-					Does Nothing
-				</button>
-			</div>
-			<div class="button_div">
-				<a id="gen_link">
-					<button class="full_button gen_button" id="gen_output" type="button">
-						Output What?
-					</button>
-				</a>
-			</div>
-		</div>
-		<div class="column center-left">
 			<div class="input_selection input_select_box_label">
 				<strong>OHLC Data</strong><br>
 				Select CSV File:
 			</div>
 			<input class="input_selection input_select_box" type="file" id="input" name="files[]" accept=".csv" single />
 		</div>
-		<div class="column center-right">
+		<div class="column center">
 			<div class="control control_options_label">
 				Controls
 			</div>

@@ -12,16 +12,13 @@
 	height: 100%;
 }
 .left {
-	width: 15%;
+	width: 25%;
 }
-.center-left {
-	width: 20%;
-}
-.center-right {
+.center {
 	width: 20%;
 }
 .right {
-    width: 45%;
+    width: 55%;
 }
 .sub_third {
 	width: 33.33%;
