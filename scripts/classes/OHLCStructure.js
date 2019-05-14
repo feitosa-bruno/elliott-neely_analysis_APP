@@ -9,6 +9,7 @@ const TypicalTypes			= require(`${appDir}/scripts/global_constants`).TypicalType
 const defaultTypicalType	= require(`${appDir}/scripts/global_constants`).defaultTypicalType;
 const Resolutions			= require(`${appDir}/scripts/global_constants`).ResolutionSequence;
 const resolutionDelta		= require(`${appDir}/scripts/global_constants`).ResolutionDuration;
+const DataTypes				= require(`${appDir}/scripts/global_constants`).DataTypes;
 const cpyObj				= require(`${appDir}/scripts/auxiliary/copyObject`);
 
 
