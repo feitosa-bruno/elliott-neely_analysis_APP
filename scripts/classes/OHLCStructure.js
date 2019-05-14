@@ -203,11 +203,17 @@ class OHLCStructure {
 	generateMonowaveVectors() {
 		for (var timeframe in this) {
 			for (var typicalType in this[timeframe]) {
-				var mwVector = new MonowaveVector(this[timeframe][typicalType]["full"]);
-				mwVector.evaluateDirectionalActions();
+				// Execute the First Run of Rule of Neutrality
+				var preRNmwVector = new MonowaveVector(this[timeframe][typicalType]["full"]);
+				// Calculate Directional Actions based on First Run of Rule of Neutrality
+				preRNmwVector.evaluateDirectionalActions();
 				
-				// TODO: Implement 2nd Step of Rule of Neutrality here
-				// 		 2nd Step will change the rules for generating a Monowave Vector
+				// Execute 2nd Run of Rule of Neutrality
+				var mwVector = new MonowaveVector();
+				mwVector.initializeWithRuleOfNeutrality(
+					this[timeframe][typicalType]["full"],
+					preRNmwVector
+				);
 				this[timeframe][typicalType]["mwVector"] = mwVector;
 				this[timeframe][typicalType]["trim"] = new OHLCTData(mwVector);
 			}

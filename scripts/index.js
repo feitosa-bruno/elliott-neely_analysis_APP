@@ -120,6 +120,18 @@ class GlobalController {
         .getElementById(_DS.fileInput)
         .addEventListener('change', this.handleFileSelect.bind(this), false);
 
+		// File Parse Finished Event Listener
+        // Flagged whenever there is a change in the selected file
+        // Event Callback Function is called handleFileSelect
+        // 'this' is tied to the GlobalController object via the 'bind(this)' so the
+        // GlobalController keeps access to the other Modules (UI and Data)
+        document
+        .addEventListener(
+			'parse_finished',
+			this._DataController.parseFinished.bind(this._DataController),
+			false
+		);
+
         // Previous Zoom Button Event Listener
         // Event Callback Function is called previousRelayout
         // 'this' is tied to the UIController object via the 'bind(this.etc)' so the
@@ -249,7 +261,7 @@ class GlobalController {
 		.addEventListener('zoom_control', this.changeZoomControl.bind(this), false);
 
 		// Enable Vertical Fit Control Event Listener
-        // Event Callback Function is called changeZoomControl
+        // Event Callback Function is called enableVerticalFitButton
         // 'this' is tied to the GlobalController object via the 'bind(this)' so the
 		// GlobalController keeps access to the other Modules (UI and Data)
 		document
@@ -516,12 +528,18 @@ class DataController {
             dynamicTyping: true,
             skipEmptyLines: true,
             complete: function(results) {
-				self.parseFinished(results.data, inputFile.name);
+				var event = new Event('parse_finished');
+				event.file = results.data;
+				event.filename = inputFile.name;
+				document.dispatchEvent(event);		
             }
 		});
 	}
 
-	parseFinished(data, filename) {
+	parseFinished(event) {
+		var data		= event.file;
+		var filename	= event.filename;
+
 		// Input File Parsed
 		inputParsingSW.stop();
 		// Processing started

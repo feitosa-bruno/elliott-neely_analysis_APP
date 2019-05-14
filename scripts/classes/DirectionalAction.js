@@ -68,7 +68,9 @@ class DirectionalAction {
 	close(monowave) {
 		this.dateEnd	= monowave.timeEnd;
 		this.valueEnd	= monowave.valueEnd;
-		this.ratio		= (this.valueEnd - this.valueStart) / (this.timeEnd - this.timeStart);
+		var deltaPrice 	= this.valueEnd - this.valueStart;
+		var deltaTime 	= this.dateEnd - this.dateStart;
+		this.ratio		= deltaPrice / deltaTime;
 	}
 }
 
