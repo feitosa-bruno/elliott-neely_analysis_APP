@@ -19,9 +19,10 @@ const cpyObj				= require(`${appDir}/scripts/auxiliary/copyObject`);
 
 class typeStructure {
 	constructor() {
-		this.full = null;
-		this.mwVector = null;
-		this.trim = null;
+		// I don't know if this is beautiful or ugly, but I love it anyways
+		DataTypes.map(dataType => {
+			return this[dataType] = null;
+		});
 	}
 }
 
@@ -203,16 +204,17 @@ class OHLCStructure {
 	generateMonowaveVectors() {
 		for (var timeframe in this) {
 			for (var typicalType in this[timeframe]) {
-				// Execute the First Run of Rule of Neutrality
-				var preRNmwVector = new MonowaveVector(this[timeframe][typicalType]["full"]);
-				// Calculate Directional Actions based on First Run of Rule of Neutrality
-				preRNmwVector.evaluateDirectionalActions();
+				// Execute the First Step of Rule of Neutrality
+				var noRNmwVector = new MonowaveVector(this[timeframe][typicalType]["full"]);
+				// Calculate Directional Actions based on First Step of Rule of Neutrality
+				noRNmwVector.evaluateDirectionalActions();
+				this[timeframe][typicalType]["noRNmwVector"] = noRNmwVector;
 				
-				// Execute 2nd Run of Rule of Neutrality
+				// Execute 2nd Run of Step of Neutrality
 				var mwVector = new MonowaveVector();
 				mwVector.initializeWithRuleOfNeutrality(
 					this[timeframe][typicalType]["full"],
-					preRNmwVector
+					noRNmwVector
 				);
 				this[timeframe][typicalType]["mwVector"] = mwVector;
 				this[timeframe][typicalType]["trim"] = new OHLCTData(mwVector);

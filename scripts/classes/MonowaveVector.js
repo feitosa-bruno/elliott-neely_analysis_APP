@@ -17,6 +17,9 @@ class MonowaveVector {
 		if (reference === undefined) {
 			// No Reference
 			// Must be initialized via method
+			this.monowave				= [];
+			this.directionalAction		= [];
+			this.nonDirectionalAction	= [];
 		} else if (reference.constructor.name === 'OHLCTData') {
 			// Initialize from OHLCTData Object
 
@@ -58,8 +61,16 @@ class MonowaveVector {
 	//  Methods  /////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////
 
-	initializeWithRuleOfNeutrality () {
-		// TODO
+	initializeWithRuleOfNeutrality (reference, mwVector) {
+		// Initialize Monowave Vector with first monowave
+		this.monowave.push(new Monowave(reference));
+
+		// TODO ing
+		var daVector = mwVector.directionalAction;	// Directional Action from first step
+		var currentMonowave = this.monowave[0];		// Current Monowave reference
+		var index = 1;								// Monowave Index
+
+
 	}
 
 	evaluateDirectionalActions () {
