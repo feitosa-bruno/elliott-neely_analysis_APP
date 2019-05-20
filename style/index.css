@@ -31,7 +31,11 @@
 	width: 35%;
 }
 .sub2 {
-	width: 60%;
+	border-right: 1px solid black;
+	width: 35%;
+}
+.sub3 {
+	width: 30%;
 }
 .row {
 	/* height: 100%; */
@@ -116,7 +120,16 @@
 }
 
 .sub_option{
-	height: 25%;
+	width: 100%;
+	display: table;
+}
+.so_label{
+	width: 40%;
+	display: table-cell;
+}
+.so_selection{
+	width: 95%;
+	display: table-cell;
 }
 
 .button_div {

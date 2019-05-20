@@ -47,47 +47,58 @@
 			<div class="row">
 				<div class="config_options sub_column sub1 config">
 					<div class="sub_option">
-						Y-Axis Type:
-						<select id="y-axis_type">
+						<label class="so_label" for="yAxisType">Y-Axis Type:</label>
+						<select class="so_selection" id="yAxisType">
 							<option value="linear">Linear</option>
 							<option value="log" selected="selected">Logarithmic</option>
 						</select>
 					</div>
 					<div class="sub_option">
-						Graph Type:
-						<select id="graph_type">
+						<label class="so_label" for="graphType">Graph Type:</label>
+						<select class="so_selection" id="graphType">
 							<option value="none">Typical Only</option>
 							<option value="candlestick">Candlestick</option>
 							<option value="ohlc" selected="selected">OHLC</option>
 						</select>
 					</div>
 					<div class="sub_option">
-						Use Date Axis: <input type="checkbox" id="date_check" value="true" checked>
+						<label class="so_label" for="xAxisType">X-Axis Type:</label>
+						<select class="so_selection" id="xAxisType">
+							<option value="date"selected="selected">Date</option>
+							<option value="category">Category</option>
+						</select>
 					</div>
 				</div>
-				<div class="config_options sub_column sub0 config">
+				<div class="config_options sub_column sub2 config">
 					<div class="sub_option">
-						Resolution:
-						<select id="resolution">
+						<label class="so_label" for="resolution">Resolution:</label>
+						<select class="so_selection" id="resolution">
 							<option value="_M1" id="_M1" selected="selected">M1</option>
 							<option value="_H1" id="_H1">H1</option>
 							<option value="_D1" id="_D1">D1</option>
-							<option value="_W1" id="_W1">W1</option>
+							<!-- <option value="_W1" id="_W1">W1</option> -->
 						</select>
 					</div>
 					<div class="sub_option">
-						Typical Average:
-						<select id="typical_type">
+						<label class="so_label" for="typicalType">Typical:</label>
+						<select class="so_selection" id="typicalType">
 							<option id="HLC"		value="HLC" selected="selected">HLC</option>
 							<option id="HL"			value="HL">HL</option>
 							<option id="combined"	value="combined">HL + HLC</option>
 						</select>
 					</div>
 					<div class="sub_option">
-						Show Trimmed Data: <input type="checkbox" id="trim_check" value="true">
+						<label class="so_label" for="trimData">Trim Data:</label>
+						<select class="so_selection" id="trimData">
+							<option id="None"		value="full" selected="selected">None</option>
+							<option id="Neely"		value="Neely">Neely</option>
+							<!-- <option id="Simple"		value="undefined">Simple</option> -->
+						</select>
 					</div>
+				</div>
+				<div class="config_options sub_column sub3 config">
 					<div class="sub_option">
-						<!-- Add Next Option Here -->
+						<!-- Next Options Column Goes Here! -->
 					</div>
 				</div>
 			</div>

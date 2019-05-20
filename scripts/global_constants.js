@@ -4,7 +4,7 @@ const DataTypes = [
 	"full",			// OHLCT Data with complete trade information
 	"noRNmwVector",	// Monowave Vector without Rule of Neutrality Applied
 	"mwVector",		// Monowave Vector with Rule of Neutrality Applied
-	"trim",			// OHLCT Data trimmed from Monowave Vector
+	"Neely",		// OHLCT Data trimmed from Monowave Vector
 ]
 
 // Typical Price Types
@@ -22,7 +22,7 @@ const ResolutionSequence = [
 	'_M1',		// 1 Minute
 	'_H1',		// 1 Hour
 	'_D1',		// 1 Day
-	'_W1',		// 1 Week
+	// '_W1',		// 1 Week
 ];
 
 // Resolution Duration in Seconds
@@ -31,7 +31,7 @@ const ResolutionDuration = {
 	_M1: 1000*60,			// 1 Minute
 	_H1: 1000*60*60,		// 1 Hour
 	_D1: 1000*60*60*24,		// 1 Day
-	_W1: 1000*60*60*24*7,	// 1 Week
+	// _W1: 1000*60*60*24*7,	// 1 Week
 };
 
 // Critical Header List

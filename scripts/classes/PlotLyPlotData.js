@@ -2,7 +2,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 //  Dependencies
 ///////////////////////////////////////////////////////////////////////////////
-// None
+const appDir				= require('electron').remote.app.getAppPath();
+const defaultTypicalType	= require(`${appDir}/scripts/global_constants`).defaultTypicalType;
 
 // Configuration
 var colorKey = {
@@ -23,30 +24,31 @@ var colorKey = {
 class PlotLyPlotData {
 	constructor (data, name, key) {
 		// Main Properties
-		this.trace		= [];
-		this.layout		= null;
-		this.dataName	= name;
-		this.xAxisType	= key.dateType;
-		this.yAxisType	= key.yAxisType;
-		this.graphType	= key.graphType;
-		this.dateType	= key.dateType;
-		this.xAxis		= null;
+		this.trace			= [];
+		this.layout			= null;
+		this.dataName		= name;
+		this.yAxisType		= key.ring.yAxisType;
+		this.graphType		= key.ring.graphType;
+		this.xAxisType		= key.ring.xAxisType;
+		this.dateType		= key.ring.xAxisType === "date" ? true : false;
+		this.xAxis			= null;
+		this.yAxis			= {};
 		
 		// Auxiliary Variables
-		var timeframe	= key.resolution;
+		var timeframe	= key.ring.resolution;
 		var typicalType = defaultTypicalType;
-		if ((key.typicalType !== "combined") && (key.typicalType !== "none")){
-			typicalType = key.typicalType;
+		var dataType	= key.ring.trimData;
+		if ((key.ring.typicalType !== "combined") && (key.ring.typicalType !== "none")){
+			typicalType = key.ring.typicalType;
 		}
-		var set = data[timeframe][typicalType]["full"];
+		var set = data[timeframe][typicalType][dataType];
 		
 		// Set Date X Axis and Y Range for Relayout Usage
 		this.xAxis = set['Date'];
-		this.yAxis = {};
 		this.yAxis["High"]	= set['High'];
 		this.yAxis["Low"]	= set['Low'];
 
-		// Trace Setup
+		// Trace Setup (OHLC Data part)
 		if (this.graphType !== "none") {			
 			this.trace.push({
 				name:	'OHLC',
@@ -59,14 +61,15 @@ class PlotLyPlotData {
 				decreasing: {line: {color: colorKey.OHLCDecreasing}},
 				increasing: {line: {color: colorKey.OHLCIncreasing}},
 				
-				type: key.graphType,
+				type: key.ring.graphType,
 				line: {color: colorKey.OHLCLine},
 				tickwidth: '0.5',
 			});
 		}
 
-		if (typicalType === "combined") {
-			set = data[timeframe]["HLC"]["full"];
+		// Trace Setup (Typical Value part)
+		if (key.ring.typicalType === "combined") {
+			set = data[timeframe]["HLC"][dataType];
 			this.trace.push({
 				name:	`Typical (HLC)`,
 				x:		set['Date'],
@@ -76,7 +79,7 @@ class PlotLyPlotData {
 				mode: 'lines',
 				line: {color: colorKey.HLCTypical, dash: 'dash'},
 			});
-			set = data[timeframe]["HL"]["full"];
+			set = data[timeframe]["HL"][dataType];
 			this.trace.push({
 				name:	`Typical (HL)`,
 				x:		set['Date'],
@@ -86,8 +89,8 @@ class PlotLyPlotData {
 				mode: 'lines',
 				line: {color: colorKey.HLTypical, dash: 'dashdot'},
 			});
-		} else if (typicalType !== "none") {
-			set = data[timeframe][typicalType]["full"];
+		} else if (key.ring.typicalType !== "none") {
+			set = data[timeframe][typicalType][dataType];
 			this.trace.push({
 				name:	`Typical (${typicalType})`,
 				x:		set['Date'],
@@ -111,9 +114,9 @@ class PlotLyPlotData {
             },
             showlegend: false,
             xaxis: {
-				visible: this.xAxisType ? true : false,
+				visible: this.dateType ? true : false,
 				title: 'Date',
-				type: this.xAxisType ? 'date' : 'category',
+				type: this.dateType ? 'date' : 'category',
 				
 				domain: [0, 1],
 				rangeslider: {

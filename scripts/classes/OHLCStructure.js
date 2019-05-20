@@ -218,7 +218,8 @@ class OHLCStructure {
 					noRNmwVector
 				);
 				this[timeframe][typicalType]["mwVector"] = mwVector;
-				this[timeframe][typicalType]["trim"] = new OHLCTData(mwVector);
+				// CHANGE THIS LINE AFTER IMPLEMENTING Rule of Neutrality
+				this[timeframe][typicalType]["Neely"] = new OHLCTData(noRNmwVector);
 			}
 		}		
 	}

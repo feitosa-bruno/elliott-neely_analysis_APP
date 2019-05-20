@@ -64,6 +64,7 @@ const OHLCStructure			= require(`${appDir}/scripts/classes/OHLCStructure`);
 const CSVtoOHLCT			= require(`${appDir}/scripts/classes/CSVtoOHLCT`);
 const PlotLyPlotData		= require(`${appDir}/scripts/classes/PlotlyPlotData`);
 const Relayout				= require(`${appDir}/scripts/classes/Relayout`);
+const PlotKey				= require(`${appDir}/scripts/classes/PlotKey`);
 const Stopwatch				= require(`${appDir}/scripts/lib/stopwatch`);
 const Versions				= require(`${appDir}/scripts/lib/versions`);
 
@@ -78,16 +79,28 @@ const controls = [
 const dataOptions = [
 	_DS.yAxisType,
 	_DS.graphType,
-	_DS.trimCheck,
-	_DS.dateCheck,
+	_DS.xAxisType,
 	_DS.resolution,
 	_DS.typicalType,
+	_DS.trimData,
 ];
-// Data Options that are Tied to X-Axis Change Graph List
+
+// Data Options that do not change the Graph Layout
 const autoUpdateDataOptions = [
+	_DS.graphType,
+	_DS.typicalType,
+	_DS.trimData,
+];
+
+// Data Options that change X-Axis Graph Layout
+const xAxisUpdateDataOptions = [
+	_DS.xAxisType,
 	_DS.resolution,
-	_DS.trimCheck,
-	_DS.typicalType
+];
+
+// Data Options that change Y-Axis Graph Layout
+const yAxisUpdateDataOptions = [
+	_DS.yAxisType,
 ];
 
 // 	Performance Evaluation
@@ -122,7 +135,7 @@ class GlobalController {
 
 		// File Parse Finished Event Listener
         // Flagged whenever there is a change in the selected file
-        // Event Callback Function is called handleFileSelect
+        // Event Callback Function is called handleFileSelect, located in the Data Controller
         // 'this' is tied to the GlobalController object via the 'bind(this)' so the
         // GlobalController keeps access to the other Modules (UI and Data)
         document
@@ -133,7 +146,7 @@ class GlobalController {
 		);
 
         // Previous Zoom Button Event Listener
-        // Event Callback Function is called previousRelayout
+        // Event Callback Function is called previousRelayout, located in the UI Controller
         // 'this' is tied to the UIController object via the 'bind(this.etc)' so the
         // UIController keeps access to the Module
         document
@@ -144,8 +157,8 @@ class GlobalController {
 			false
 		);
 
-		// Previous Zoom Button Event Listener
-        // Event Callback Function is called nextRelayout
+		// Next Zoom Button Event Listener
+        // Event Callback Function is called nextRelayout, located in the UI Controller
         // 'this' is tied to the UIController object via the 'bind(this.etc)' so the
         // UIController keeps access to the Module
         document
@@ -157,8 +170,8 @@ class GlobalController {
 		);
 
 		// Fit Data Vertically Button Event Listener
-        // Event Callback Function is called fitGraphVertically
-        // 'this' is tied to the UIController object via the 'bind(this)' so the
+        // Event Callback Function is called fitGraphVertically, located in the UI Controller
+        // 'this' is tied to the UIController object via the 'bind(this.etc)' so the
         // UIController keeps access to the Module
         document
         .getElementById(_DS.verticalFit)
@@ -169,80 +182,43 @@ class GlobalController {
 		);
 
 		// Auto-Update Options Event Listener
-		// Event Callback Function is called changeXAxisResolution
-		// Event is tied to changes that are Resolution sensitive
-		// 'this' is tied to the UIController object via the 'bind(this)' so the
-		// UIController keeps access to the Module
+		// Event Callback Function is called handleGraphUpdate
+		// Event is tied to changes that do not change Graph Layout
+		// 'this' is tied to the Global Controller object via the 'bind(this)' so the
+		// GlobalController keeps access to the other Modules (UI and Data)
 		autoUpdateDataOptions.map(option => {
 			document
 			.getElementById(option)
-			.addEventListener(
-				'change',
-				this._UIController.changeXAxisResolution.bind(
-					this._UIController,
-					this._DataController.data),
-				false)
+			.addEventListener('change', this.handleGraphUpdate.bind(this), false)
 		});
 	
-		// Date Axis Change Event Listener
-        // Event Callback Function is called changeXAxisType
-        // 'this' is tied to the UIController object via the 'bind(this)' so the
-        // UIController keeps access to the Module
-        document
-        .getElementById(_DS.dateCheck)
-		.addEventListener(
-			'change',
-			this._UIController.changeXAxisType.bind(this._UIController),
-			false
-		);
-		// This isn't tied to auto-update graph because it needs to process data beforehand
-
-		// Typical Type Change Event Listener
-		// Event Callback Function is called changeTypicalType
-		// 'this' is tied to the UIController object via the 'bind(this)' so the
-		// UIController keeps access to the Module
-        document
-        .getElementById(_DS.typicalType)
-		.addEventListener(
-			'change',
-			this.handleGraphUpdate.bind(this._UIController),
-			false
-		);
-	
-		// Trimmed Change Event Listener
-		// Event Callback Function is called changeTrimmedOption
-		// 'this' is tied to the UIController object via the 'bind(this)' so the
-		// UIController keeps access to the Module
-        document
-        .getElementById(_DS.trimCheck)
-		.addEventListener(
-			'change',
-			this._UIController.changeTrimmedOption.bind(this._UIController),
-			false
-		);
-		// This doesn't update the graph, just disable/enable other options
-
-		// Y Axis Change Event Listener
-		// Event Callback Function is called changeYAxis
-        // 'this' is tied to the UIController object via the 'bind(this)' so the
-        // UIController keeps access to the Module
-        document
-        .getElementById(_DS.yAxisType)
-		.addEventListener(
-			'change',
-			this._UIController.changeYAxis.bind(this._UIController),
-			false
-		);
-		// This isn't tied to auto-update graph because it needs to process data beforehand
-
-		// Graph Update Event Listener
-		// Event Callback Function is called handleGraphUpdate
-		// Event is tied to change in Graph Type and Manual Triggering
+		// X-Axis Update Options Event Listener
+		// Event Callback Function is called updateXAxis
+		// Event is tied to changes that change X-Axis Layout
 		// 'this' is tied to the GlobalController object via the 'bind(this)' so the
 		// GlobalController keeps access to the other Modules (UI and Data)
-		document
-		.getElementById(_DS.graphType)
-		.addEventListener('change', this.handleGraphUpdate.bind(this), false);
+		xAxisUpdateDataOptions.map(option => {
+			document
+			.getElementById(option)
+			.addEventListener('change', this.updateXAxis.bind(this), false)
+		});
+
+		// Y-Axis Update Options Event Listener
+		// Event Callback Function is called updateYAxis
+		// Event is tied to changes that change Y-Axis Layout
+		// 'this' is tied to the GlobalController object via the 'bind(this)' so the
+		// GlobalController keeps access to the other Modules (UI and Data)
+		yAxisUpdateDataOptions.map(option => {
+			document
+			.getElementById(option)
+			.addEventListener('change', this.updateYAxis.bind(this, "test"), false)
+		});
+	
+		// Graph Update Event Listener
+		// Event Callback Function is called handleGraphUpdate
+		// Event is tied to Manual Triggering (UI Module request to Global Module)
+		// 'this' is tied to the GlobalController object via the 'bind(this)' so the
+		// GlobalController keeps access to the other Modules (UI and Data)
 		document
 		.addEventListener('update_graph', this.handleGraphUpdate.bind(this), false);
 
@@ -407,6 +383,20 @@ class GlobalController {
 		}
 	}
 
+	// Update Y Axis
+	//	: Interaction between UI Module and Global Module
+	//		: Global Module sends key information to UI Module
+	updateXAxis () {
+		this._UIController.updateGraphXAxis(this.getKey());
+	}
+
+	// Update Y Axis
+	//	: Interaction between UI Module and Global Module
+	//		: Global Module sends key information to UI Module
+	updateYAxis () {
+		this._UIController.updateGraphYAxis(this.getKey());
+	}
+
 	// Update Graph
 	//	: Interaction between UI Module and Data Module via Global Module
 	//		: Global Module sends Data Module information to UI Module
@@ -427,42 +417,17 @@ class GlobalController {
 	}
 
 	getKey () {
-		return {
-			resolution:		this.getResolution(),
-			typicalType:	this.getTypicalType(),
-			type:			this.getTrimCheck(),
-			dateType:		this.getDateCheck(),
-			graphType:		this.getGraphType(),
-			yAxisType:		this.getYAxisType(),
-			};
+		var key = {};
+
+		dataOptions.map(option =>{
+			key[option] = this.getDataOptionSelection(option);
+		});
+
+		return key;
 	}
 
-	getResolution () {
-		return document.getElementById(_DS.resolution).value;
-	}
-
-	getTrimCheck () {
-		if (document.getElementById(_DS.trimCheck).checked) {
-			return "trim";
-		} else {
-			return "full";
-		}
-	}
-
-	getTypicalType () {
-		return document.getElementById(_DS.typicalType).value;
-	}
-
-	getDateCheck () {
-		return document.getElementById(_DS.dateCheck).checked;
-	}
-
-	getGraphType () {
-        return document.getElementById(_DS.graphType).value;
-    }
-
-	getYAxisType () {
-        return document.getElementById(_DS.yAxisType).value;
+	getDataOptionSelection (option) {
+		return document.getElementById(option).value;
 	}
 
 	resizePlotBox () {
@@ -584,7 +549,8 @@ class DataController {
 
 		// Disable Unused Resolution Options
 		var event = new Event('disable_resolutions');
-		document.dispatchEvent(event);	}
+		document.dispatchEvent(event);
+	}
 
 	updateFilename (inputFileName) {
 		this.parsedFilesList = inputFileName;
@@ -602,18 +568,25 @@ class DataController {
 
 class UIController {
     constructor () {
-		this.key				= null;
+		this.plotKey			= new PlotKey();
 		this.graphPlotted		= false;
 		this.plotlyData			= null;
 		this.relayout			= new Relayout();
 	}
 
+	// Plot Data
+	//	: Interaction between UI Module and Global & Data Modules
+	//		: UI Module receives plot data from Data Module sent via Global Module
 	plotData (data, filename, key) {
-		// Store Data Key
-		this.key = key;
+		// Store/Update Plot Information Key
+		if (!this.graphPlotted) {
+			this.plotKey.initialize(key);
+		} else {
+			this.plotKey.update(key);
+		}
 
 		// Select OHLCTData Plot Data from OHLCStructure
-		this.plotlyData = new PlotLyPlotData(data, filename, key);
+		this.plotlyData = new PlotLyPlotData(data, filename, this.plotKey);
 
 		// Plot OHLC Graph
 		this.plotGraph(this.plotlyData, _DS.plotDIV);
@@ -621,7 +594,7 @@ class UIController {
 		// Tie Layout Change Observer (only once)
 		// And don't you ever forget to bind it to the UI Controller ever again
 		if (this.relayout.notTied) {
-			this.relayout.importPlotlyPlotData(this.plotlyData, key);
+			this.relayout.importPlotlyPlotData(this.plotlyData, this.plotKey);
 			document
 			.getElementById(_DS.plotDIV)
 			.on('plotly_relayout', this.updateSavedRelayout.bind(this));
@@ -630,8 +603,7 @@ class UIController {
 
     plotGraph (plotData, plotDIV) {
 		if (this.graphPlotted) {
-			// Get from saved relayout
-			// Set Layout Information according to Relayout
+			// Update Relayout information
 			this.relayout.set(plotData);
 
 			Plotly.react(plotDIV, plotData.trace, plotData.layout, {responsive: true})
@@ -650,6 +622,9 @@ class UIController {
 		}
 	}
 
+	// Trigger a Graph Update on Global Controller
+	//	: Interaction between UI Module and Global Module
+	//		: UI Module requests Global Controller to update the graph
 	triggerGraphUpdate () {
 		var event = new Event('update_graph');
 		document.dispatchEvent(event);
@@ -707,7 +682,7 @@ class UIController {
 		// This method can also be called programmatically with any given 'relayout'
 
 		// Update Current Relayout and save to history (max 10 items)
-		this.relayout.update(relayout, this.key);
+		this.relayout.update(relayout);
 
 		// Disable Redo Zoom Control
 		this.changeZoomControlState(_DS.redoZoom, false);
@@ -724,61 +699,30 @@ class UIController {
 		this.triggerGraphUpdate();
 	}
 
-	changeYAxis () {
-		// Update Relayout y Axis type
-		this.relayout.updateYAxis()
-				
-		// Trigger Graph Potting
-		this.triggerGraphUpdate();
-	}
+	// Update X Axis on Graph
+	//	: Interaction between UI Module and Global Module
+	//		: UI Module sends key information from Global Module
+	updateGraphXAxis (key) {
+		// Update Plot Key as received form Global Controller
+		this.plotKey.update(key);
 
-	changeXAxisType () {
-		// Update Relayout x Axis type
+		// Update Relayout X Axis
 		this.relayout.updateXAxis();
 		
 		// Trigger Graph Potting
 		this.triggerGraphUpdate();
 	}
 
-	changeTrimmedOption () {
-		// Toggle Combined HLC+HL plot
-		this.toggleCombinedTypical();
-	}
-
-	// TODO: Revise
-	changeXAxisResolution (data) {
-		if (!this.getDateCheck()) {
-			// Not using Date when changing Resolution, change X axis
-			var currentKey			= this.getKey();
-			var resolution			= currentKey.resolution;
-			var typicalType			= currentKey.typicalType;
-			var relayoutHistory		= this.relayoutHistory;
-			var relayoutDateHistory = this.relayoutDateHistory;
-			relayoutDateHistory.map((el, pos) => {
-				var xMin = new Date(el[0]);
-				var xMax = new Date(el[1]);
-				var index = 0;
-				// console.log(xMin, xMax);
-
-				while (xMin > data[resolution][typicalType]['full']['Date'][index]){
-					index++;
-				}
-				xMin = index - 1;
-				
-				while (xMax > data[resolution][typicalType]['full']['Date'][index]){
-					index++;
-				}
-				xMax = index;
-				// console.log(xMin, xMax);
-				relayoutHistory[pos]['xaxis.range[0]'] = xMin;
-				relayoutHistory[pos]['xaxis.range[1]'] = xMax;
-			});
-			// console.log(relayoutHistory);
+	// Update Y Axis on Graph
+	//	: Interaction between UI Module and Global Module
+	//		: UI Module sends key information from Global Module
+	updateGraphYAxis (key) {
+		// Update Plot Key as received form Global Controller
+		this.plotKey.update(key);
 		
-		}
-		// console.log(data);
-		// console.log(`Changed from ${lastKey} to ${currentKey}`);
-
+		// Update Relayout Y Axis
+		this.relayout.updateYAxis();
+				
 		// Trigger Graph Potting
 		this.triggerGraphUpdate();
 	}
