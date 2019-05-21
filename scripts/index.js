@@ -89,13 +89,13 @@ const dataOptions = [
 const autoUpdateDataOptions = [
 	_DS.graphType,
 	_DS.typicalType,
-	_DS.trimData,
 ];
 
 // Data Options that change X-Axis Graph Layout
 const xAxisUpdateDataOptions = [
 	_DS.xAxisType,
 	_DS.resolution,
+	_DS.trimData,
 ];
 
 // Data Options that change Y-Axis Graph Layout
@@ -383,18 +383,42 @@ class GlobalController {
 		}
 	}
 
-	// Update Y Axis
+	// Update X Axis
 	//	: Interaction between UI Module and Global Module
 	//		: Global Module sends key information to UI Module
 	updateXAxis () {
-		this._UIController.updateGraphXAxis(this.getKey());
+		graphPlottingSW.start();
+		// Update Plot Data beforehand
+		this._UIController.updatePlotData(
+			this._DataController.data,
+			this._DataController.getFilename(),
+			this.getKey()
+		);
+
+		// Update Relayout X Axis values
+		this._UIController.relayout.updateXAxis();
+
+		// Plot
+		this._UIController.plotGraph();
 	}
 
 	// Update Y Axis
 	//	: Interaction between UI Module and Global Module
 	//		: Global Module sends key information to UI Module
 	updateYAxis () {
-		this._UIController.updateGraphYAxis(this.getKey());
+		graphPlottingSW.start();
+		// Update Plot Data beforehand
+		this._UIController.updatePlotData(
+			this._DataController.data,
+			this._DataController.getFilename(),
+			this.getKey()
+		);
+
+		// Update Relayout Y Axis values
+		this._UIController.relayout.updateYAxis();
+
+		// Plot
+		this._UIController.plotGraph();
 	}
 
 	// Update Graph
@@ -542,7 +566,7 @@ class DataController {
 		this.data.calculateTypical();
 
 		// Remove Data Trailing the Lowest Typical value on each chart
-		this.data.removeTrailingData();
+		// this.data.removeTrailingData();
 
 		// Convert OHLCT Data to Monowave Vectors, Apply Rule of Neutrality, and Trim
 		this.data.generateMonowaveVectors();
@@ -572,47 +596,51 @@ class UIController {
 		this.graphPlotted		= false;
 		this.plotlyData			= null;
 		this.relayout			= new Relayout();
+		this.plotDIV			= _DS.plotDIV;
 	}
 
 	// Plot Data
 	//	: Interaction between UI Module and Global & Data Modules
 	//		: UI Module receives plot data from Data Module sent via Global Module
 	plotData (data, filename, key) {
-		// Store/Update Plot Information Key
-		if (!this.graphPlotted) {
-			this.plotKey.initialize(key);
-		} else {
-			this.plotKey.update(key);
-		}
-
-		// Select OHLCTData Plot Data from OHLCStructure
-		this.plotlyData = new PlotLyPlotData(data, filename, this.plotKey);
+		// Update Plot Data from information received from Global Module
+		this.updatePlotData(data, filename, key);
 
 		// Plot OHLC Graph
-		this.plotGraph(this.plotlyData, _DS.plotDIV);
-		
+		this.plotGraph();
+
 		// Tie Layout Change Observer (only once)
 		// And don't you ever forget to bind it to the UI Controller ever again
 		if (this.relayout.notTied) {
-			this.relayout.importPlotlyPlotData(this.plotlyData, this.plotKey);
+			this.relayout.tieObserver();
 			document
-			.getElementById(_DS.plotDIV)
+			.getElementById(this.plotDIV)
 			.on('plotly_relayout', this.updateSavedRelayout.bind(this));
 		}
 	}
 
-    plotGraph (plotData, plotDIV) {
+    plotGraph () {
 		if (this.graphPlotted) {
 			// Update Relayout information
-			this.relayout.set(plotData);
+			this.relayout.set(this.plotlyData);
 
-			Plotly.react(plotDIV, plotData.trace, plotData.layout, {responsive: true})
+			Plotly.react(
+				this.plotDIV,
+				this.plotlyData.trace,
+				this.plotlyData.layout,
+				{responsive: true}
+			)
 			.then(() => {
 				console.log("Graph Updated.");
 				graphPlottingSW.stop();
 			});
 		} else {
-			Plotly.newPlot(plotDIV, plotData.trace, plotData.layout, {responsive: true})
+			Plotly.newPlot(
+				this.plotDIV,
+				this.plotlyData.trace,
+				this.plotlyData.layout,
+				{responsive: true}
+			)
 			.then(() => {
 				console.log("Graph Plotted.");
 				this.graphPlotted = true;
@@ -620,6 +648,23 @@ class UIController {
 				this.enableVerticalFit();
 			});
 		}
+	}
+
+	updatePlotData (data, filename, key) {
+		// Store/Update Plot Information Key
+		if (!this.graphPlotted) {
+			// Initialize Key information
+			this.plotKey.initialize(key);
+		} else {
+			// Update Key information
+			this.plotKey.update(key);
+		}
+
+		// Select OHLCTData Plot Data from OHLCStructure
+		this.plotlyData = new PlotLyPlotData(data, filename, this.plotKey);
+
+		// Update Plotly Plot Data in the Relayout
+		this.relayout.importPlotlyPlotData(this.plotlyData, this.plotKey);
 	}
 
 	// Trigger a Graph Update on Global Controller
@@ -695,34 +740,6 @@ class UIController {
 		// Fit Y Axis
 		this.relayout.fitYAxis();
 						
-		// Trigger Graph Potting
-		this.triggerGraphUpdate();
-	}
-
-	// Update X Axis on Graph
-	//	: Interaction between UI Module and Global Module
-	//		: UI Module sends key information from Global Module
-	updateGraphXAxis (key) {
-		// Update Plot Key as received form Global Controller
-		this.plotKey.update(key);
-
-		// Update Relayout X Axis
-		this.relayout.updateXAxis();
-		
-		// Trigger Graph Potting
-		this.triggerGraphUpdate();
-	}
-
-	// Update Y Axis on Graph
-	//	: Interaction between UI Module and Global Module
-	//		: UI Module sends key information from Global Module
-	updateGraphYAxis (key) {
-		// Update Plot Key as received form Global Controller
-		this.plotKey.update(key);
-		
-		// Update Relayout Y Axis
-		this.relayout.updateYAxis();
-				
 		// Trigger Graph Potting
 		this.triggerGraphUpdate();
 	}

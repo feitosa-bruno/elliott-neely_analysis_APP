@@ -92,12 +92,11 @@
 }
 
 .control_options1{
-	height: 30%;
+	height: 40%;
 }
 
 .control_options2{
-	padding-left: 5px;
-	height: 25%;
+	height: 40%;
 }
 
 .config {
@@ -115,12 +114,13 @@
 }
 
 .config_options{
-	padding-left: 5px;
 	height: 80%;
 }
 
 .sub_option{
+	padding-left: 5px;
 	width: 100%;
+	height: 33.3%;
 	display: table;
 }
 .so_label{

@@ -56,9 +56,9 @@ class OHLCStructure {
 		}
 	}
 
-	// TODO: (CRITICAL) TO REVISE (broken)
 	reduceOHLC(firstTimeframe) {
-		var firstInput = this[firstTimeframe][defaultTypicalType]["full"];
+		var typicalType = defaultTypicalType;
+		var firstInput = this[firstTimeframe][typicalType]["full"];
 
 		// Conversion Counters and Indexes
 		var t0 = {};
@@ -70,90 +70,99 @@ class OHLCStructure {
 				var timeframe = Resolutions[index];
 				t0[timeframe] = firstInput["Date"][0];
 				subIndex[timeframe] = 0;
-				for (var typicalType in this[timeframe]) {
-					// The Reference Samba: save reference first...
-					var newEntry = this[timeframe][typicalType]["full"];
-					// ...dance with it...
-					newEntry = new OHLCTData();
-					for (var key in newEntry) {
-						newEntry[key][0] = firstInput[key][0];
-					}
-					// ...and return it
-					this[timeframe][typicalType]["full"] = newEntry;
+
+				// The Reference Samba: save reference first...
+				var newEntry = this[timeframe][typicalType]["full"];
+				// ...dance with it...
+				newEntry = new OHLCTData();
+				for (var key in newEntry) {
+					newEntry[key].push(firstInput[key][0]);
 				}
+				// ...and return it
+				this[timeframe][typicalType]["full"] = newEntry;
 			}
 		}
+
 		// console.log(t0);
 		// console.log(subIndex);
 		// console.log(this);
 		// console.log(firstInput);
 
 		// The Ugly Part
-		// NOTE:	index is the most significant (most variant)
-		// 			_index is the subIndex for that given timeframe reduction
-		// DEBUG: this logic is showing bad behavior, need to debug
-		for (var typicalType in this[firstTimeframe]) {
-			for (var index in firstInput["Date"]) {
-				if (index == 0)	// Skip initial value already used in initialization
-					continue;
-				for (var timeframe in t0) {
-					if (firstInput["Date"][index] - t0[timeframe] >= resolutionDelta[timeframe]) {
-						var currEntry = this[timeframe][typicalType]["full"];
-						var _index = subIndex[timeframe];
-
-						// Initialize current Open with the last Close value
-						currEntry["Close"][_index] = firstInput["Close"][index - 1];
-
-						// Next SubIndex
-						subIndex[timeframe]++;
-
-						// Update t0 for that given timeframe
-						t0[timeframe] = firstInput["Date"][index];
-
-						// Initialize Values
-						for (var key in currEntry) {
-							if (key === "Date") {		// Format Date object
-								currEntry[key].push(new Date(cpyObj(firstInput[key][index])));
-							} else if (key !== "Close" && firstInput[key][index]) {
-								currEntry[key].push(firstInput[key][index]);
-							}
-						}
-						// Return the reference back
-						this[timeframe][typicalType]["full"] = currEntry;
-					} else {
-						var currEntry = this[timeframe][typicalType]["full"];
-						var _index = subIndex[timeframe];
-
-						// Increment OHLC Reduction Progressively
-
-						// 'High' is the maximum of the section
-						currEntry["High"][_index] = Math.max(
-							firstInput["High"][index],
-							currEntry["High"][_index]
-						);
-						// 'Low' is the minimum of the section
-						currEntry["High"][_index] = Math.min(
-							firstInput["High"][index],
-							currEntry["High"][_index]
-						);
-
-						// Otherwise, it's the sum of the section
-						currEntry["TickVolume"][_index] += firstInput["TickVolume"][index];
-						currEntry["Volume"][_index] += firstInput["Volume"][index];
-						currEntry["Spread"][_index] += firstInput["Spread"][index];
-
-						// Return reference back
-						this[timeframe][typicalType]["full"] = currEntry;
-					}
-					// console.log(timeframe);
-				}
-			}
-
-			// "Close" values for last point of OHLC Reduction
+		// NOTE:	i is the most significant index (most variant)
+		// 			_i is the subIndex for that given timeframe reduction
+		for (var i = 1; i < firstInput["Date"].length; i++) {
 			for (var timeframe in t0) {
-				this[timeframe][typicalType]["full"]["Close"].push(
-					firstInput["Close"][firstInput["Close"].length - 1]
-				);
+				if (firstInput["Date"][i] - t0[timeframe] < resolutionDelta[timeframe]) {
+					// Inside Timeframe: Evaluation Case
+
+					var currEntry = this[timeframe][typicalType]["full"];
+					var _i = subIndex[timeframe];
+
+					// Increment OHLC Reduction Progressively
+
+					// 'High' is the maximum of the section
+					currEntry["High"][_i] = Math.max(
+						firstInput["High"][i],
+						currEntry["High"][_i]
+					);
+					// 'Low' is the minimum of the section
+					currEntry["Low"][_i] = Math.min(
+						firstInput["Low"][i],
+						currEntry["Low"][_i]
+					);
+
+					// Otherwise, it's the sum of the section
+					currEntry["TickVolume"][_i] += firstInput["TickVolume"][i];
+					currEntry["Volume"][_i] += firstInput["Volume"][i];
+					currEntry["Spread"][_i] += firstInput["Spread"][i];
+
+					// Return reference back
+					this[timeframe][typicalType]["full"] = currEntry;
+				} else {
+					// End of Timeframe: Closing/Opening Case
+
+					var currEntry = this[timeframe][typicalType]["full"];
+					var _i = subIndex[timeframe];
+
+					// Current Timeframe Close gets last Close
+					currEntry["Close"][_i] = firstInput["Close"][i - 1];
+
+					// Next SubIndex
+					subIndex[timeframe]++;
+
+					// Update t0 for that given timeframe
+					t0[timeframe] = firstInput["Date"][i];
+
+					// Initialize Values
+					for (var key in currEntry) {
+						if (key === "Date") {			// Format Date object
+							currEntry[key].push(new Date(firstInput[key][i]));
+						} else if (key !== "Close") {	// Close is skipped, already init
+							currEntry[key].push(firstInput[key][i]);
+						}
+					}
+					// Return the reference back
+					this[timeframe][typicalType]["full"] = currEntry;
+				}
+				// console.log(timeframe);
+			}
+		}
+
+		// "Close" values for last point of OHLC Reduction
+		for (var timeframe in t0) {
+			this[timeframe][typicalType]["full"]["Close"].push(
+				firstInput["Close"][firstInput["Close"].length - 1]
+			);
+		}
+
+		// Copy work done for default Typical Type to other Typical Types
+		for (var timeframe in t0) {
+			for (var typicalType in this[timeframe]) {
+				if (typicalType !== defaultTypicalType) {
+					var reference = this[timeframe][defaultTypicalType]["full"];
+					this[timeframe][typicalType]["full"] = new OHLCTData(reference);
+				}
 			}
 		}
 	}
@@ -218,8 +227,8 @@ class OHLCStructure {
 					noRNmwVector
 				);
 				this[timeframe][typicalType]["mwVector"] = mwVector;
-				// CHANGE THIS LINE AFTER IMPLEMENTING Rule of Neutrality
-				this[timeframe][typicalType]["Neely"] = new OHLCTData(noRNmwVector);
+				this[timeframe][typicalType]["simple"] = new OHLCTData(noRNmwVector);
+				this[timeframe][typicalType]["Neely"] = new OHLCTData(mwVector);
 			}
 		}		
 	}

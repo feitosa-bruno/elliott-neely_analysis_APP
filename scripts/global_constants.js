@@ -4,6 +4,7 @@ const DataTypes = [
 	"full",			// OHLCT Data with complete trade information
 	"noRNmwVector",	// Monowave Vector without Rule of Neutrality Applied
 	"mwVector",		// Monowave Vector with Rule of Neutrality Applied
+	"simple",		// OHLCT Data trimmed without Rule of Neutrality
 	"Neely",		// OHLCT Data trimmed from Monowave Vector
 ]
 

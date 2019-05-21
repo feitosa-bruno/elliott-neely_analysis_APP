@@ -139,6 +139,29 @@ class PlotLyPlotData {
 			},
 		};
 	}
+
+	update (data, key) {
+		// Main Properties
+		this.yAxisType		= key.ring.yAxisType;
+		this.graphType		= key.ring.graphType;
+		this.xAxisType		= key.ring.xAxisType;
+		this.dateType		= key.ring.xAxisType === "date" ? true : false;
+
+		// Auxiliary Variables
+		var timeframe	= key.ring.resolution;
+		var typicalType = defaultTypicalType;
+		var dataType	= key.ring.trimData;
+		if ((key.ring.typicalType !== "combined") && (key.ring.typicalType !== "none")){
+			typicalType = key.ring.typicalType;
+		}
+		var set = data[timeframe][typicalType][dataType];
+		
+		// Set Date X Axis and Y Range for Relayout Usage
+		this.xAxis = set['Date'];
+		this.yAxis["High"]	= set['High'];
+		this.yAxis["Low"]	= set['Low'];
+
+	}
 }
 
 module.exports = PlotLyPlotData;

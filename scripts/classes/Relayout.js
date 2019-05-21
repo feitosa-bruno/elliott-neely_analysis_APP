@@ -24,21 +24,20 @@ let standardRelayout = {
 
 class Relayout {
 	constructor () {
-		this.notTied				= true;
-		this.xAxis					= null;
-		this.yAxis					= null;
-		this.key					= null;
-		this.current				= 0;
-		this.savedRelayout			= standardRelayout;
-		this.relayoutHistory		= [];
-		this.relayoutDateHistory	= [];
+		this.notTied			= true;
+		this.xAxis				= null;
+		this.yAxis				= null;
+		this.key				= null;
+		this.current			= 0;
+		this.savedRelayout		= standardRelayout;
+		this.history			= [];
+		this.dateHistory		= [];
 	}
 
 	importPlotlyPlotData(plotlyPlotData, key) {
 		this.xAxis		= plotlyPlotData.xAxis;
 		this.yAxis		= plotlyPlotData.yAxis;
 		this.key		= key;
-		this.notTied	= false;
 	}
 
 	update(relayout) {
@@ -61,24 +60,24 @@ class Relayout {
 	save(relayout) {
 		// Remove All Saved Relayouts forwards to the current
 		while (this.current !== 0) {
-			this.relayoutHistory.shift();
-			this.relayoutDateHistory.shift();
+			this.history.shift();
+			this.dateHistory.shift();
 			this.current--;
 		}
 
 		// Limit number of Relayouts to 10
-		if (this.relayoutHistory.length >= 10) {
-			this.relayoutHistory.pop();
-			this.relayoutDateHistory.pop();
+		if (this.history.length >= 10) {
+			this.history.pop();
+			this.dateHistory.pop();
 		}
 		
 		// Save History of Relayouts
-		this.relayoutHistory.unshift(cpyObj(relayout));
+		this.history.unshift(cpyObj(relayout));
 
 		// Save Relayout Date History
 		if (this.key.ring.xAxisType === "date") {
 			// Already in Date Mode
-			this.relayoutDateHistory.unshift([
+			this.dateHistory.unshift([
 				new Date(relayout["xaxis.range[0]"]),
 				new Date(relayout["xaxis.range[1]"])
 			]);
@@ -86,7 +85,7 @@ class Relayout {
 			// In Category (numeric) Mode, need to change to Date
 			var xMin = Math.floor(relayout["xaxis.range[0]"]);
 			var xMax = Math.floor(relayout["xaxis.range[1]"]) + 1;
-			this.relayoutDateHistory.unshift([
+			this.dateHistory.unshift([
 				new Date(this.xAxis[xMin]), 
 				new Date(this.xAxis[xMax])
 			]);
@@ -127,8 +126,14 @@ class Relayout {
 		if(!relayout) return;
 
 		// Get the xAxis boundaries
-		var x0 = closestIndex(this.xAxis, new Date(relayout["xaxis.range[0]"])) - 1;
-		var x1 = closestIndex(this.xAxis, new Date(relayout["xaxis.range[1]"])) + 1;
+		var x0, x1;
+		if (this.key.ring.xAxisType === "date") {		// X Axis in Date Mode
+			x0 = closestIndex(this.xAxis, new Date(relayout["xaxis.range[0]"])) - 1;
+			x1 = closestIndex(this.xAxis, new Date(relayout["xaxis.range[1]"])) + 1;
+		} else {										// X Axis in Category Mode
+			x0 = Math.floor(relayout["xaxis.range[0]"]) - 1;
+			x1 = Math.floor(relayout["xaxis.range[1]"]) + 1;
+		}
 		var yMaxSlice = this.yAxis.High.slice(x0, x1);
 		var yMinSlice = this.yAxis.Low.slice(x0, x1);
 
@@ -150,17 +155,16 @@ class Relayout {
 	}
 
 	updateYAxis() {
-		if (this.key.updated.yAxisType) {
-			console.log(this.key.ring.yAxisType);
+		if (this.key.updated.yAxisType) {	// Changes in Y Axis Type (Log/Linear)
 			if (this.key.ring.yAxisType === 'log'){
 				// Changed from Linear to Log
-				this.relayoutHistory.map(el => {
+				this.history.map(el => {
 					el['yaxis.range[0]'] = Math.log10(el['yaxis.range[0]']);
 					el['yaxis.range[1]'] = Math.log10(el['yaxis.range[1]']);
 				});
 			} else {
 				// Changed from Log to Linear
-				this.relayoutHistory.map(el => {
+				this.history.map(el => {
 					el['yaxis.range[0]'] = 10**el['yaxis.range[0]'];
 					el['yaxis.range[1]'] = 10**el['yaxis.range[1]'];
 				});
@@ -169,61 +173,30 @@ class Relayout {
 	}
 
 	updateXAxis() {
-			// if (this.key.ring.dateType){
-			// 	// Changed to Date
-			// 	this.relayoutHistory.map(el => {
-			// 		var xMin = Math.floor(el['xaxis.range[0]']);
-			// 		var xMax = Math.floor(el['xaxis.range[1]']) + 1;
-			// 		el['xaxis.range[0]'] = this.xAxis[xMin];
-			// 		el['xaxis.range[1]'] = this.xAxis[xMax];
-			// 	});
-			// } else {
-			// 	// Changed to Category
-			// 	this.relayoutHistory.map(el => {
-			// 		var xMin = new Date(el['xaxis.range[0]']);
-			// 		var xMax = new Date(el['xaxis.range[1]']);
-			// 		el['xaxis.range[0]'] = closestIndex(this.xAxis, xMin);
-			// 		el['xaxis.range[1]'] = closestIndex(this.xAxis, xMax);
-			// 	});
-			// }
-	}
-
-	// TODO: Revise
-	changeXAxisResolution(data) {
-		if (!this.getDateCheck()) {
-			// Not using Date when changing Resolution, change X axis
-			var currentKey = this.getKey();
-			var resolution = currentKey.resolution;
-			var typicalType = currentKey.typicalType;
-			var relayoutHistory = this.relayoutHistory;
-			var relayoutDateHistory = this.relayoutDateHistory;
-			relayoutDateHistory.map((el, pos) => {
-				var xMin = new Date(el[0]);
-				var xMax = new Date(el[1]);
-				var index = 0;
-				// console.log(xMin, xMax);
-
-				while (xMin > data[resolution][typicalType]['full']['Date'][index]) {
-					index++;
-				}
-				xMin = index - 1;
-
-				while (xMax > data[resolution][typicalType]['full']['Date'][index]) {
-					index++;
-				}
-				xMax = index;
-				// console.log(xMin, xMax);
-				relayoutHistory[pos]['xaxis.range[0]'] = xMin;
-				relayoutHistory[pos]['xaxis.range[1]'] = xMax;
-			});
-			// console.log(relayoutHistory);
-
+		if (this.key.updated.xAxisType) {	// Changes in X Axis Type (Date/Category)
+			if (this.key.ring.xAxisType === "date"){	// Changed from Category to Date
+				this.history.map(el => {
+					var xMin = Math.floor(el['xaxis.range[0]']);
+					var xMax = Math.floor(el['xaxis.range[1]']);
+					el['xaxis.range[0]'] = this.xAxis[xMin];
+					el['xaxis.range[1]'] = this.xAxis[xMax];
+				});
+			} else {									// Changed from Date to Category
+				this.history.map(el => {
+					var xMin = new Date(el['xaxis.range[0]']);
+					var xMax = new Date(el['xaxis.range[1]']);
+					el['xaxis.range[0]'] = closestIndex(this.xAxis, xMin);
+					el['xaxis.range[1]'] = closestIndex(this.xAxis, xMax);
+				});
+			}
+		} else {	// Changes in Resolution or Trim Type
+			if (this.key.ring.xAxisType === "category"){	// X Axis in Category Mode
+				this.dateHistory.map((el, index) => {
+					this.history[index]['xaxis.range[0]'] = closestIndex(this.xAxis, el[0]);
+					this.history[index]['xaxis.range[1]'] = closestIndex(this.xAxis, el[1]);
+				});
+			}
 		}
-		// console.log(data);
-		// console.log(`Changed from ${lastKey} to ${currentKey}`);
-
-		// Trigger Graph Potting
-		this.triggerGraphUpdate();
 	}
 	
 	firstPosition() {
@@ -231,7 +204,7 @@ class Relayout {
 	}
 
 	lastPosition() {
-		return (this.current > this.relayoutHistory.length - 1);
+		return (this.current > this.history.length - 1);
 	}
 
 	nextPosition() {
@@ -243,7 +216,11 @@ class Relayout {
 	}
 
 	getCurrentRelayout() {
-		return this.relayoutHistory[this.current];
+		return this.history[this.current];
+	}
+
+	tieObserver() {
+		this.notTied = false;
 	}
 }
 

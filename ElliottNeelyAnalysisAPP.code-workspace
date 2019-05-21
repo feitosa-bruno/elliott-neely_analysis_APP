@@ -13,7 +13,9 @@
 			"**/package-lock.json",
 			"**/package.json",
 			"**/*.code-workspace",
-			"**/plotly.*.js"
+			"**/*.md",
+			"**/plotly.*.js",
+			"**/.gitignore",
 		],
 		"LineCount.output": {
 			"txt": false,
