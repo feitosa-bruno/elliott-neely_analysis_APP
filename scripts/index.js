@@ -67,6 +67,7 @@ const Relayout				= require(`${appDir}/scripts/classes/Relayout`);
 const PlotKey				= require(`${appDir}/scripts/classes/PlotKey`);
 const Stopwatch				= require(`${appDir}/scripts/lib/stopwatch`);
 const Versions				= require(`${appDir}/scripts/lib/versions`);
+const objectSize			= require(`${appDir}/scripts/auxiliary/objectSize`);
 
 // User Controls List
 const controls = [
@@ -106,7 +107,6 @@ const yAxisUpdateDataOptions = [
 // 	Performance Evaluation
 inputParsingSW		= new Stopwatch('Input Parsing');
 inputProcessingSW	= new Stopwatch('Input Processing');
-outputGenerationSW	= new Stopwatch('Output Generation');
 graphPlottingSW		= new Stopwatch('Graph Plotting');
 
 
@@ -498,7 +498,6 @@ class GlobalController {
 
 class DataController {
     constructor () {
-		this.plotData = null;
 		this.data = new OHLCStructure();
 		this.parsedFilename = null;
 	}
@@ -541,6 +540,9 @@ class DataController {
 			// Store Processed OHLCT 
 			this.processData(treatedData.OHLCT, treatedData.timeframe);
 
+			// Processing started
+			inputProcessingSW.stop();
+
 			// Send File Name to Parsed File List
 			this.updateFilename(filename);
 
@@ -566,7 +568,7 @@ class DataController {
 		this.data.calculateTypical();
 
 		// Remove Data Trailing the Lowest Typical value on each chart
-		// this.data.removeTrailingData();
+		this.data.removeTrailingData();
 
 		// Convert OHLCT Data to Monowave Vectors, Apply Rule of Neutrality, and Trim
 		this.data.generateMonowaveVectors();
