@@ -1,1 +1,1 @@
-Implement Changes in X Axis (Resolution and Date/Category changes)
+Update plotting design to separate Full OHLC from Trimmed Typical (plot both at the same time)

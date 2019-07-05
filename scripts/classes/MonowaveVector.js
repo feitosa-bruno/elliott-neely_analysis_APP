@@ -65,11 +65,16 @@ class MonowaveVector {
 		// Initialize Monowave Vector with first monowave
 		this.monowave.push(new Monowave(reference));
 
-		// TODO ing
+		// Setup Variables
 		var daVector = mwVector.directionalAction;	// Directional Action from first step
 		var currentMonowave = this.monowave[0];		// Current Monowave reference
-		var index = 1;								// Monowave Index
+		var mwIndex = 1;							// Monowave Index
+		var daIndex = 0;							// Directional Action Index
 
+		// WORKING
+
+		console.log(daVector);
+		console.log(currentMonowave);
 
 	}
 

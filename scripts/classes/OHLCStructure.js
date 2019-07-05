@@ -210,7 +210,6 @@ class OHLCStructure {
 		}
 	}
 
-	// TODO: Apply Rule of Neutrality on Monowave Vector
 	generateMonowaveVectors() {
 		for (var timeframe in this) {
 			for (var typicalType in this[timeframe]) {
@@ -218,7 +217,6 @@ class OHLCStructure {
 				var noRNmwVector = new MonowaveVector(this[timeframe][typicalType]["full"]);
 				// Calculate Directional Actions based on First Step of Rule of Neutrality
 				noRNmwVector.evaluateDirectionalActions();
-				this[timeframe][typicalType]["noRNmwVector"] = noRNmwVector;
 				
 				// Execute 2nd Run of Step of Neutrality
 				var mwVector = new MonowaveVector();
@@ -226,9 +224,14 @@ class OHLCStructure {
 					this[timeframe][typicalType]["full"],
 					noRNmwVector
 				);
-				this[timeframe][typicalType]["mwVector"] = mwVector;
-				this[timeframe][typicalType]["simple"] = new OHLCTData(noRNmwVector);
-				this[timeframe][typicalType]["Neely"] = new OHLCTData(mwVector);
+
+				// Store Monowave Vectors
+				this[timeframe][typicalType]["mwVector"]		= mwVector;
+				this[timeframe][typicalType]["noRNmwVector"]	= noRNmwVector;
+				
+				// Store Trimmed Data
+				this[timeframe][typicalType]["simple"] 	= new OHLCTData(noRNmwVector);
+				this[timeframe][typicalType]["Neely"] 	= new OHLCTData(mwVector);
 			}
 		}		
 	}

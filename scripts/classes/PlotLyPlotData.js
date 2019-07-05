@@ -33,18 +33,15 @@ class PlotLyPlotData {
 		this.dateType		= key.ring.xAxisType === "date" ? true : false;
 		this.xAxis			= null;
 		this.yAxis			= {};
-		
+			
 		// Auxiliary Variables
 		var timeframe	= key.ring.resolution;
-		var typicalType = defaultTypicalType;
 		var dataType	= key.ring.trimData;
-		if ((key.ring.typicalType !== "combined") && (key.ring.typicalType !== "none")){
-			typicalType = key.ring.typicalType;
-		}
-		var set = data[timeframe][typicalType][dataType];
+		var typicalType = key.ring.typicalType;
+		var set 		= data[timeframe][defaultTypicalType][dataType];
 		
 		// Set Date X Axis and Y Range for Relayout Usage
-		this.xAxis = set['Date'];
+		this.xAxis			= set['Date'];
 		this.yAxis["High"]	= set['High'];
 		this.yAxis["Low"]	= set['Low'];
 
@@ -62,13 +59,16 @@ class PlotLyPlotData {
 				increasing: {line: {color: colorKey.OHLCIncreasing}},
 				
 				type: key.ring.graphType,
-				line: {color: colorKey.OHLCLine},
+				line: {
+					color: colorKey.OHLCLine,
+					width: 2,
+				},
 				tickwidth: '0.5',
 			});
 		}
 
 		// Trace Setup (Typical Value part)
-		if (key.ring.typicalType === "combined") {
+		if (typicalType === "combined") {
 			set = data[timeframe]["HLC"][dataType];
 			this.trace.push({
 				name:	`Typical (HLC)`,
@@ -77,7 +77,11 @@ class PlotLyPlotData {
 				
 				type: 'scatter',
 				mode: 'lines',
-				line: {color: colorKey.HLCTypical, dash: 'dash'},
+				line: {
+					color: colorKey.HLCTypical,
+					dash: 'dash',
+					width: 1,
+				},
 			});
 			set = data[timeframe]["HL"][dataType];
 			this.trace.push({
@@ -87,9 +91,13 @@ class PlotLyPlotData {
 				
 				type: 'scatter',
 				mode: 'lines',
-				line: {color: colorKey.HLTypical, dash: 'dashdot'},
+				line: {
+					color: colorKey.HLTypical,
+					dash: 'dashdot',
+					width: 1,
+				},
 			});
-		} else if (key.ring.typicalType !== "none") {
+		} else if (typicalType !== "none") {
 			set = data[timeframe][typicalType][dataType];
 			this.trace.push({
 				name:	`Typical (${typicalType})`,
@@ -98,7 +106,10 @@ class PlotLyPlotData {
 				
 				type: 'scatter',
 				mode: 'lines',
-				line: {color: colorKey.soloTypical},
+				line: {
+					color: colorKey.soloTypical,
+					width: 1,
+				},
 			});
 		}
 
@@ -149,18 +160,13 @@ class PlotLyPlotData {
 
 		// Auxiliary Variables
 		var timeframe	= key.ring.resolution;
-		var typicalType = defaultTypicalType;
 		var dataType	= key.ring.trimData;
-		if ((key.ring.typicalType !== "combined") && (key.ring.typicalType !== "none")){
-			typicalType = key.ring.typicalType;
-		}
-		var set = data[timeframe][typicalType][dataType];
+		var set = data[timeframe][defaultTypicalType][dataType];
 		
 		// Set Date X Axis and Y Range for Relayout Usage
-		this.xAxis = set['Date'];
+		this.xAxis			= set['Date'];
 		this.yAxis["High"]	= set['High'];
 		this.yAxis["Low"]	= set['Low'];
-
 	}
 }
 
